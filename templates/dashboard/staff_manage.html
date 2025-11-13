@@ -1,0 +1,83 @@
+{% extends "_base.html" %}
+{% block title %}Gestionar equipo - {{ restaurant.name }}{% endblock %}
+{% block content %}
+<h3 class="mb-3">Equipo · {{ restaurant.name }}</h3>
+
+<div class="card p-3 mb-3">
+  <h5 class="mb-2">Añadir trabajador</h5>
+  <form class="row g-2" method="post" action="{{ url_for('dashboard.staff_create') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12 col-md-4">
+      <label class="form-label">Nombre</label>
+      <input class="form-control" type="text" name="name" placeholder="Nombre" required>
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label">Rol</label>
+      <input class="form-control" type="text" name="role" placeholder="Rol (opcional)">
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label">Foto (jpg/png)</label>
+      <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Bio</label>
+      <textarea class="form-control" name="bio" rows="2" placeholder="Breve bio (opcional)"></textarea>
+    </div>
+    <div class="col-12 text-end">
+      <button class="btn btn-primary" type="submit">Añadir</button>
+    </div>
+  </form>
+  <small class="text-muted">Las fotos se guardan optimizadas en /static/uploads.</small>
+  </div>
+
+<div class="row g-3">
+  {% for s in staff_list %}
+  <div class="col-12 col-lg-6">
+    <div class="p-3 staff-card h-100">
+      <form method="post" action="{{ url_for('dashboard.staff_update', staff_id=s.id) }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="d-flex align-items-center gap-3">
+          {% if s.avatar_url %}
+            <img class="avatar avatar-lg" src="{{ s.avatar_url }}" alt="{{ s.name }}">
+          {% else %}
+            {% set initials = (s.name.split(' ')[0][:1] + (s.name.split(' ')[1][:1] if s.name.split(' ')|length>1 else '')).upper() %}
+            <div class="avatar-fallback avatar-lg">{{ initials }}</div>
+          {% endif %}
+          <div class="flex-grow-1">
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <label class="form-label">Nombre</label>
+                <input class="form-control" name="name" value="{{ s.name }}" required>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Rol</label>
+                <input class="form-control" name="role" value="{{ s.role or '' }}">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Bio</label>
+                <textarea class="form-control" name="bio" rows="2">{{ s.bio or '' }}</textarea>
+              </div>
+              <div class="col-12 col-md-8">
+                <label class="form-label">Nueva foto (opcional)</label>
+                <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
+              </div>
+              <div class="col-12 col-md-4 d-flex align-items-end justify-content-between flex-wrap gap-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="active" id="act{{ s.id }}" {% if s.active %}checked{% endif %}>
+                  <label class="form-check-label" for="act{{ s.id }}">Activo</label>
+                </div>
+                <button class="btn btn-primary" type="submit">Guardar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+      <form method="post" action="{{ url_for('dashboard.staff_delete', staff_id=s.id) }}" class="mt-2 text-end" onsubmit="return confirm('¿Eliminar este trabajador? Quedará inactivo.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-dark btn-sm" type="submit">Eliminar</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

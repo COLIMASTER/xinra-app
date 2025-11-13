@@ -1,0 +1,54 @@
+{% extends "_base.html" %}
+{% block title %}Feedback - {{ restaurant.name }}{% endblock %}
+{% block content %}
+<div class="mb-3 text-center">
+  <h4>Tu experiencia en {{ restaurant.name }}</h4>
+  {% if staff %}<div class="text-muted">Para {{ staff.name }}</div>{% endif %}
+  {% if tip %}<div class="small text-muted">Propina #{{ tip.id }} — ${{ '%.2f' % (tip.amount_cents/100) }}</div>{% endif %}
+</div>
+
+<form method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
+  {{ form.hidden_tag() }}
+
+  <div class="mb-3 text-center">
+    {% with target='rating', value=form.rating.data %}
+      {% include "_stars.html" %}
+    {% endwith %}
+  </div>
+
+  <div class="mb-3">
+    {{ form.comment.label(class="form-label") }}
+    {{ form.comment(class="form-control", placeholder="Cuéntanos (opcional)") }}
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Foto (opcional)</label>
+    <div class="input-group">
+      {{ form.photo(class="form-control", id="photo-input") }}
+    </div>
+    <img id="photo-preview" class="img-fluid mt-2 d-none" alt="preview" />
+  </div>
+
+  <div class="form-check form-switch mb-3">
+    {{ form.share_allowed(class="form-check-input", id="share") }}
+    <label class="form-check-label" for="share">Permitir compartir mi feedback</label>
+  </div>
+
+  <div class="d-grid">{{ form.submit(class="btn btn-success btn-lg") }}</div>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    window.initStars && window.initStars();
+    const file = document.getElementById('photo-input');
+    const prev = document.getElementById('photo-preview');
+    file && file.addEventListener('change', () => {
+      const f = file.files[0];
+      if (!f) { prev.classList.add('d-none'); return; }
+      const url = URL.createObjectURL(f);
+      prev.src = url;
+      prev.classList.remove('d-none');
+    })
+  });
+</script>
+{% endblock %}

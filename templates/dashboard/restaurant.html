@@ -1,0 +1,196 @@
+{% extends "_base.html" %}
+{% block title %}Dashboard Restaurante{% endblock %}
+{% block content %}
+<h3 class="mb-3 display-6 fancy-title">{{ restaurant.name }}</h3>
+
+<div class="card p-3 shadow-sm mb-3">
+  <form class="row g-2 align-items-end" method="post" action="{{ url_for('dashboard.restaurant_logo') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12 col-md-6 d-flex align-items-center gap-3 flex-wrap">
+      {% if restaurant.logo_url %}
+        <img src="{{ restaurant.logo_url }}" alt="logo" style="height:48px" class="rounded border">
+      {% else %}
+        <span class="text-muted small">Sin logo</span>
+      {% endif %}
+      <div>
+        <label class="form-label">Logo (jpg/png)</label>
+        <input class="form-control" type="file" name="logo" accept="image/png,image/jpeg">
+      </div>
+    </div>
+    <div class="col-12 col-md-6 text-end">
+      <button class="btn btn-primary" type="submit">Actualizar logo</button>
+      {% if restaurant.logo_url %}
+        <button form="logo-del" class="btn btn-outline-dark ms-2" type="submit">Quitar</button>
+      {% endif %}
+    </div>
+  </form>
+  {% if restaurant.logo_url %}
+  <form id="logo-del" method="post" action="{{ url_for('dashboard.restaurant_logo_delete') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+  {% endif %}
+</div>
+
+<div class="row g-3 my-2">
+  <div class="col-12 col-sm-4">
+    <div class="card text-center p-2 shadow-sm"><div class="small text-muted">Hoy</div><div class="h5">€ {{ '%.2f' % (tips_today/100) }}</div></div>
+  </div>
+  <div class="col-12 col-sm-4">
+    <div class="card text-center p-2 shadow-sm"><div class="small text-muted">Semana</div><div class="h5">€ {{ '%.2f' % (tips_week/100) }}</div></div>
+  </div>
+  <div class="col-12 col-sm-4">
+    <div class="card text-center p-2 shadow-sm"><div class="small text-muted">Mes</div><div class="h5">€ {{ '%.2f' % (tips_month/100) }}</div></div>
+  </div>
+</div>
+
+<div class="row g-3 my-2">
+  <div class="col-12 col-md-6">
+    <div class="card p-3 shadow-sm">
+      <div class="small text-muted">Rating promedio</div>
+      <div class="display-6">{{ '%.2f' % rating_avg }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6">
+    <div class="card p-3 shadow-sm">
+      <div class="small text-muted">Num. reviews</div>
+      <div class="display-6">{{ reviews_count }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3 my-3 shadow-sm chart-card">
+  <div class="d-flex align-items-center justify-content-between">
+    <h5 class="mb-0">Propinas por día (mes actual vs anterior)</h5>
+  </div>
+  <div style="height:300px"><canvas id="tipsChart"></canvas></div>
+  <small class="text-muted">Eje X: días del mes. Eje Y: euros.</small>
+  </div>
+
+<div class="row g-3 my-2">
+  <div class="col-12 col-lg-6">
+    <div class="card p-3 shadow-sm">
+      <h6 class="mb-2">Top 3 por propinas</h6>
+      <ul class="list-group list-group-flush">
+        {% for s, total in top_tipped %}
+        <li class="list-group-item d-flex justify-content-between"><span>{{ s.name }}</span><span>€ {{ '%.2f' % ((total or 0)/100) }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card p-3 shadow-sm">
+      <h6 class="mb-2">Top 3 por rating</h6>
+      <ul class="list-group list-group-flush">
+        {% for s in top_rated %}
+        <li class="list-group-item d-flex justify-content-between"><span>{{ s.name }}</span><span>{{ '%.2f' % s.rating_avg }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if staff_cards %}
+<div class="card p-3 my-3 shadow-sm">
+  <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+    <h5 class="mb-0">Equipo</h5>
+    <div class="d-flex gap-2 flex-wrap justify-content-end">
+      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.staff_manage') }}">Gestionar equipo</a>
+      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.payouts_view') }}">Ver pagos</a>
+      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.coupons_manage') }}">Cupones</a>
+    </div>
+  </div>
+  <div class="row g-3">
+    {% for s, pending in staff_cards %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="p-3 staff-card h-100">
+        <div class="d-flex align-items-center gap-3">
+          {% if s.avatar_url %}
+            <img class="avatar" src="{{ s.avatar_url }}" alt="{{ s.name }}">
+          {% else %}
+            {% set initials = (s.name.split(' ')[0][:1] + (s.name.split(' ')[1][:1] if s.name.split(' ')|length>1 else '')).upper() %}
+            <div class="avatar-fallback">{{ initials }}</div>
+          {% endif %}
+          <div class="flex-grow-1">
+            <div class="fw-bold">{{ s.name }}</div>
+            <div class="small text-muted">{{ s.role or 'Staff' }}</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold">€ {{ '%.2f' % ((pending or 0)/100) }}</div>
+            <div class="small text-muted">Pendiente</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mt-3">
+          <div class="small">
+            {% set full = s.rating_avg|round(0, 'floor')|int %}
+            {% for i in range(1,6) %}
+              {% if i <= full %}&#9733;{% else %}&#9734;{% endif %}
+            {% endfor %}
+            <span class="ms-1">{{ '%.1f' % s.rating_avg }}</span>
+          </div>
+          <div>
+            {% if (pending or 0) > 0 %}
+            <form method="post" action="{{ url_for('dashboard.payouts_view') }}" class="m-0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="staff_id" value="{{ s.id }}">
+              <button class="btn btn-primary btn-sm" type="submit">Enviar ahora</button>
+            </form>
+            {% else %}
+              <span class="text-muted small">Al día</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card p-3 my-3 shadow-sm">
+  <h5 class="mb-2">Resenas recientes</h5>
+  {% if recent_reviews %}
+    <ul class="list-group list-group-flush">
+      {% for r in recent_reviews %}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between">
+          <div>
+            <strong>{{ r.staff.name if r.staff_id else 'General' }}</strong>
+            <span class="ms-2">
+              {% for i in range(1,6) %}
+                {% if i <= r.rating %}
+                  &#9733;
+                {% else %}
+                  &#9734;
+                {% endif %}
+              {% endfor %}
+            </span>
+          </div>
+          <small class="text-muted">{{ r.created_at.strftime('%Y-%m-%d') }}</small>
+        </div>
+        {% if r.comment %}
+        <div class="small mt-1 text-muted">{{ r.comment }}</div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+  <div class="text-muted">Aun no hay resenas.</div>
+  {% endif %}
+</div>
+
+<div class="card p-3 my-3 shadow-sm chart-card">
+  <h5 class="mb-2">Totales por trabajador</h5>
+  <div style="height:260px"><canvas id="staffChart"></canvas></div>
+  <small class="text-muted">Totales acumulados. Ir a <a class="link-dark" href="{{ url_for('dashboard.payouts_view') }}">Pagos</a>.</small>
+</div>
+
+<script id="initialChartsData" type="application/json">
+  {{ {
+    'daily_labels': daily_labels,
+    'daily_current': daily_current,
+    'daily_previous': daily_previous,
+    'staff_labels': staff_labels,
+    'staff_totals': staff_totals
+  } | tojson | safe }}
+</script>
+{% endblock %}

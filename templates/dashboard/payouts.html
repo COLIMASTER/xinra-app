@@ -1,0 +1,55 @@
+{% extends "_base.html" %}
+{% block title %}Pagos - {{ restaurant.name }}{% endblock %}
+{% block content %}
+<h4 class="mb-3">Pagos a trabajadores</h4>
+
+<div class="card p-3 shadow-sm mb-3">
+  <h6 class="mb-2">Pendiente de enviar</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Trabajador</th>
+          <th class="text-end">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s, total in rows %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td class="text-end">${{ '%.2f' % ((total or 0)/100) }}</td>
+          <td class="text-end">
+            {% if (total or 0) > 0 %}
+            <form method="post" action="{{ url_for('dashboard.payouts_view') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="staff_id" value="{{ s.id }}">
+              <button class="btn btn-primary btn-sm" type="submit">Enviar</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Al día</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card p-3 shadow-sm">
+  <h6 class="mb-2">Últimas transferencias</h6>
+  {% if transfers %}
+  <ul class="list-group list-group-flush">
+    {% for t in transfers %}
+    <li class="list-group-item d-flex justify-content-between">
+      <span>#{{ t.id }} · {{ t.staff_ref.name if t.staff_ref else 'General' }} · {{ t.created_at.strftime('%Y-%m-%d') }}</span>
+      <span>${{ '%.2f' % (t.amount_cents/100) }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <div class="text-muted">Sin transferencias aún.</div>
+  {% endif %}
+</div>
+{% endblock %}

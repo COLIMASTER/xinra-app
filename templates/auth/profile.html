@@ -1,0 +1,127 @@
+{% extends "_base.html" %}
+{% block title %}Perfil{% endblock %}
+{% block content %}
+<div class="card p-4 shadow-sm mb-3 profile-hero">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar-fallback avatar-lg">{{ (user.name or 'U')[:1].upper() }}</div>
+      <div>
+        <h4 class="mb-1">{{ user.name or 'Usuario' }}</h4>
+        <div class="small text-muted">{{ user.email or 'Invitado' }}</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-4">
+      <div class="xp-ring" data-progress="{{ progress_pct }}">
+        <div class="text-center">
+          <div class="label">{{ progress_pct }}%</div>
+          <div class="sub">Nivel {{ user.level }}</div>
+        </div>
+      </div>
+      <div>
+        <div class="small text-muted">XP: {{ user.xp }}</div>
+        {% if next_tier %}
+          <div class="small text-muted">Siguiente: {{ next_tier.name }} ({{ next_tier.threshold_xp }} XP)</div>
+        {% else %}
+          <div class="small text-muted">Máximo nivel alcanzado</div>
+        {% endif %}
+        <form class="mt-2" method="post" action="{{ url_for('auth.merge_guest') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-dark btn-sm" type="submit">Fusionar anónimo</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card p-3 shadow-sm mb-3">
+      <h5 class="mb-2">Restaurantes que has valorado</h5>
+      {% if restaurants %}
+      <div class="d-flex flex-wrap gap-2">
+        {% for r in restaurants %}
+          <a class="btn btn-outline-light btn-sm" href="{{ url_for('public.tip_page', restaurant_slug=r.slug) }}">{{ r.name }}</a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-muted">Aun no has valorado ni dado propinas.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5 class="mb-2">Tus propinas</h5>
+      {% if tips %}
+      <ul class="list-group list-group-flush">
+        {% for t in tips %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ t.created_at.strftime('%Y-%m-%d') }} - {{ t.restaurant.name }} - {{ t.staff.name if t.staff_id else 'General' }}</span>
+          <span>€{{ '%.2f' % (t.amount_cents/100) }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-muted">Sin propinas aun.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5 class="mb-2">Tus resenas</h5>
+      {% if reviews %}
+      <ul class="list-group list-group-flush">
+        {% for r in reviews %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <span>{{ r.created_at.strftime('%Y-%m-%d') }} - {{ r.restaurant.name }} - {{ r.staff.name if r.staff_id else 'General' }}</span>
+            <span>
+              {% for i in range(1,6) %}
+                {% if i <= r.rating %}
+                  &#9733;
+                {% else %}
+                  &#9734;
+                {% endif %}
+              {% endfor %}
+            </span>
+          </div>
+          {% if r.comment %}
+          <div class="small text-muted mt-1">{{ r.comment }}</div>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-muted">Sin resenas aun.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card p-3 shadow-sm h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-2">Cupones desbloqueados</h5>
+        <small class="text-muted">Se desbloquean al dar propina</small>
+      </div>
+      {% if unlocked_by_rest and unlocked_by_rest|length > 0 %}
+        {% for rest_id, pack in unlocked_by_rest.items() %}
+          {% set rest = pack.restaurant %}
+          {% set coupons = pack.coupons %}
+          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurante' }}</div>
+          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            {% for c in coupons %}
+            <div class="col">
+              <div class="card p-3 h-100 coupon-card">
+                <div class="fw-bold">{{ c.title }}</div>
+                {% if c.description %}<div class="small mt-1 text-muted">{{ c.description }}</div>{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted">Aún no has desbloqueado cupones. Da una propina para desbloquear los del restaurante.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "_base.html" %}
+{% block title %}Staff{% endblock %}
+{% block content %}
+<h3>Mi desempeño — {{ staff.name }}</h3>
+
+<div class="row g-3 my-2">
+  <div class="col-4"><div class="card p-2 text-center shadow-sm"><div class="small text-muted">Tips hoy</div><div class="h5">${{ '%.2f' % (tips_today/100) }}</div></div></div>
+  <div class="col-4"><div class="card p-2 text-center shadow-sm"><div class="small text-muted">Tips semana</div><div class="h5">${{ '%.2f' % (tips_week/100) }}</div></div></div>
+  <div class="col-4"><div class="card p-2 text-center shadow-sm"><div class="small text-muted">Rating promedio</div><div class="h5">{{ '%.2f' % rating_avg }}</div></div></div>
+  <div class="col-12">
+    <div class="card p-3 shadow-sm">
+      <h6>Últimas propinas</h6>
+      <ul class="list-group list-group-flush">
+        {% for t in last_tips %}<li class="list-group-item d-flex justify-content-between"><span>{{ t.created_at }}</span><span>${{ '%.2f' % (t.amount_cents/100) }}</span></li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card p-3 shadow-sm">
+      <h6>Últimos reviews</h6>
+      <ul class="list-group list-group-flush">
+        {% for r in last_reviews %}<li class="list-group-item"><span class="me-2">{{ r.created_at }}</span> ⭐ {{ r.rating }} — {{ r.comment }}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

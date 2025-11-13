@@ -1,0 +1,67 @@
+¿Qué es esto?
+Backend + frontend de servidor (HTML Jinja) para propinas/feedback por QR. Se ejecuta con Python/Flask y guarda datos en PostgreSQL. Es mobile-first.
+
+Requisitos
+
+Python 3.10+
+
+PostgreSQL
+
+pip instalado
+
+Instalación (paso a paso)
+
+cd flask_app
+python -m venv .venv
+# Windows:
+.\.venv\Scripts\activate
+# macOS/Linux:
+# source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # edita SQLALCHEMY_DATABASE_URI, SECRET_KEY
+
+
+Crear tablas y datos de ejemplo
+
+flask db init        # solo primera vez
+flask db migrate -m "init"
+flask db upgrade
+python -m app.seed   # crea Café Luna y datos de prueba
+
+
+Arrancar
+
+python app.py
+
+
+Página de salud: http://127.0.0.1:5000/health
+
+Página pública de Café Luna: http://127.0.0.1:5000/r/cafe-luna
+
+Cómo usarlo
+
+Entra a /r/cafe-luna, elige staff → monto → método → “Dar propina”.
+
+Pasa a Feedback: estrellas, texto y foto (opcional).
+
+Verás Gracias + tu nivel de supporter.
+
+(Opcional) Crea cuenta en Registro para guardar tus puntos.
+
+Admin: entra a Dashboard (con usuario admin del seed).
+
+Errores comunes (y solución rápida)
+
+“No conecta a la base de datos” → revisa SQLALCHEMY_DATABASE_URI.
+
+“Imagen demasiado grande o formato incorrecto” → usa jpg/png y < 2 MB.
+
+“CSRF token missing” → no deshabilites CSRF; usa los formularios.
+
+“No veo el dashboard” → necesitas rol admin/manager en ese restaurante.
+
+Producción (breve)
+
+pip install gunicorn
+gunicorn -w 4 -b 0.0.0.0:8000 wsgi:app
+
