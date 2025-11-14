@@ -1,10 +1,10 @@
 {% extends "_base.html" %}
-{% block title %}Gestionar equipo - {{ restaurant.name }}{% endblock %}
+{% block title %}Manage team - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<h3 class="mb-3">Equipo · {{ restaurant.name }}</h3>
+<h3 class="mb-3">Team · {{ restaurant.name }}</h3>
 
 <div class="card p-3 mb-3">
-  <h5 class="mb-2">Añadir trabajador</h5>
+  <h5 class="mb-2">Add staff</h5>
   <form class="row g-2" method="post" action="{{ url_for('dashboard.staff_create') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-12 col-md-4">
@@ -16,7 +16,7 @@
       <input class="form-control" type="text" name="role" placeholder="Rol (opcional)">
     </div>
     <div class="col-12 col-md-3">
-      <label class="form-label">Foto (jpg/png)</label>
+      <label class="form-label">Photo (jpg/png)</label>
       <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
     </div>
     <div class="col-12">
@@ -24,7 +24,7 @@
       <textarea class="form-control" name="bio" rows="2" placeholder="Breve bio (opcional)"></textarea>
     </div>
     <div class="col-12 text-end">
-      <button class="btn btn-primary" type="submit">Añadir</button>
+      <button class="btn btn-primary" type="submit">Add</button>
     </div>
   </form>
   <small class="text-muted">Las fotos se guardan optimizadas en /static/uploads.</small>
@@ -64,17 +64,17 @@
               <div class="col-12 col-md-4 d-flex align-items-end justify-content-between flex-wrap gap-2">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" name="active" id="act{{ s.id }}" {% if s.active %}checked{% endif %}>
-                  <label class="form-check-label" for="act{{ s.id }}">Activo</label>
+                  <label class="form-check-label" for="act{{ s.id }}">Active</label>
                 </div>
-                <button class="btn btn-primary" type="submit">Guardar</button>
+                <button class="btn btn-primary" type="submit">Save</button>
               </div>
             </div>
           </div>
         </div>
       </form>
-      <form method="post" action="{{ url_for('dashboard.staff_delete', staff_id=s.id) }}" class="mt-2 text-end" onsubmit="return confirm('¿Eliminar este trabajador? Quedará inactivo.');">
+      <form method="post" action="{{ url_for('dashboard.staff_delete', staff_id=s.id) }}" class="mt-2 text-end" onsubmit="return confirm('Delete this staff member? They will be marked inactive.');">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-outline-dark btn-sm" type="submit">Eliminar</button>
+        <button class="btn btn-outline-dark btn-sm" type="submit">Delete</button>
       </form>
     </div>
   </div>

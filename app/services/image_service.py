@@ -18,7 +18,7 @@ def process_and_save_image(file_storage):
     size = file_storage.stream.tell()
     file_storage.stream.seek(0)
     if size > max_mb * 1024 * 1024:
-        raise ValueError("Imagen supera el límite de tamaño")
+        raise ValueError("Image exceeds size limit")
 
     img = Image.open(file_storage.stream)
     img = img.convert("RGB") if img.mode in ("P", "RGBA") else img

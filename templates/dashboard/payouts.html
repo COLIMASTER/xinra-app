@@ -1,15 +1,15 @@
 {% extends "_base.html" %}
-{% block title %}Pagos - {{ restaurant.name }}{% endblock %}
+{% block title %}Payouts - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<h4 class="mb-3">Pagos a trabajadores</h4>
+<h4 class="mb-3">Payouts to staff</h4>
 
 <div class="card p-3 shadow-sm mb-3">
-  <h6 class="mb-2">Pendiente de enviar</h6>
+  <h6 class="mb-2">Pending to send</h6>
   <div class="table-responsive">
     <table class="table table-sm align-middle">
       <thead>
         <tr>
-          <th>Trabajador</th>
+          <th>Staff</th>
           <th class="text-end">Total</th>
           <th></th>
         </tr>
@@ -24,10 +24,10 @@
             <form method="post" action="{{ url_for('dashboard.payouts_view') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="staff_id" value="{{ s.id }}">
-              <button class="btn btn-primary btn-sm" type="submit">Enviar</button>
+              <button class="btn btn-primary btn-sm" type="submit">Send</button>
             </form>
             {% else %}
-            <span class="text-muted small">Al día</span>
+            <span class="text-muted small">Up to date</span>
             {% endif %}
           </td>
         </tr>
@@ -38,7 +38,7 @@
 </div>
 
 <div class="card p-3 shadow-sm">
-  <h6 class="mb-2">Últimas transferencias</h6>
+  <h6 class="mb-2">Latest transfers</h6>
   {% if transfers %}
   <ul class="list-group list-group-flush">
     {% for t in transfers %}
@@ -49,7 +49,7 @@
     {% endfor %}
   </ul>
   {% else %}
-    <div class="text-muted">Sin transferencias aún.</div>
+    <div class="text-muted">No transfers yet.</div>
   {% endif %}
 </div>
 {% endblock %}

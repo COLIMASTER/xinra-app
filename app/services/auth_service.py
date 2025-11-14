@@ -13,7 +13,7 @@ def register_user(email: str, password: str, name: str) -> User:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        raise ValueError("El email ya está registrado")
+        raise ValueError("Email is already registered")
     login_user(user)
     return user
 
@@ -21,6 +21,6 @@ def register_user(email: str, password: str, name: str) -> User:
 def authenticate(email: str, password: str) -> User:
     user = User.query.filter_by(email=email.lower().strip()).first()
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
-        raise ValueError("Credenciales inválidas")
+        raise ValueError("Invalid credentials")
     login_user(user)
     return user

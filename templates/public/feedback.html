@@ -2,9 +2,9 @@
 {% block title %}Feedback - {{ restaurant.name }}{% endblock %}
 {% block content %}
 <div class="mb-3 text-center">
-  <h4>Tu experiencia en {{ restaurant.name }}</h4>
-  {% if staff %}<div class="text-muted">Para {{ staff.name }}</div>{% endif %}
-  {% if tip %}<div class="small text-muted">Propina #{{ tip.id }} — ${{ '%.2f' % (tip.amount_cents/100) }}</div>{% endif %}
+  <h4>Your experience at {{ restaurant.name }}</h4>
+  {% if staff %}<div class="text-muted">For {{ staff.name }}</div>{% endif %}
+  {% if tip %}<div class="small text-muted">Tip #{{ tip.id }} — ${{ '%.2f' % (tip.amount_cents/100) }}</div>{% endif %}
 </div>
 
 <form method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
@@ -18,11 +18,11 @@
 
   <div class="mb-3">
     {{ form.comment.label(class="form-label") }}
-    {{ form.comment(class="form-control", placeholder="Cuéntanos (opcional)") }}
+    {{ form.comment(class="form-control", placeholder="Tell us more (optional)") }}
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Foto (opcional)</label>
+    <label class="form-label">Photo (optional)</label>
     <div class="input-group">
       {{ form.photo(class="form-control", id="photo-input") }}
     </div>
@@ -31,7 +31,7 @@
 
   <div class="form-check form-switch mb-3">
     {{ form.share_allowed(class="form-check-input", id="share") }}
-    <label class="form-check-label" for="share">Permitir compartir mi feedback</label>
+    <label class="form-check-label" for="share">Allow sharing my feedback</label>
   </div>
 
   <div class="d-grid">{{ form.submit(class="btn btn-success btn-lg") }}</div>

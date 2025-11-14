@@ -24,17 +24,17 @@ def run_seed():
 
         r = Restaurant.query.filter_by(slug="cafe-luna").first()
         if not r:
-            r = Restaurant(slug="cafe-luna", name="Café Luna", logo_url="https://placehold.co/200x80?text=Cafe+Luna")
+            r = Restaurant(slug="cafe-luna", name="Cafe Luna", logo_url="https://placehold.co/200x80?text=Cafe+Luna")
             db.session.add(r)
             db.session.flush()
 
         staff = Staff.query.filter_by(restaurant_id=r.id).all()
         if not staff:
             staff = [
-                Staff(restaurant_id=r.id, name="Mia", role="Barista", avatar_url="https://placehold.co/96x96?text=M", bio="Especialista en latte art y amante del café de origen."),
-                Staff(restaurant_id=r.id, name="Jake", role="Barista", avatar_url="https://placehold.co/96x96?text=J", bio="Fan del espresso perfecto; prueba su capuccino."),
-                Staff(restaurant_id=r.id, name="Tess", role="Server", avatar_url="https://placehold.co/96x96?text=T", bio="Siempre sonriente; hará tu visita más agradable."),
-                Staff(restaurant_id=r.id, name="Leo", role="Cook", avatar_url="https://placehold.co/96x96?text=L", bio="Chef creativo; responsable de los especiales del día."),
+                Staff(restaurant_id=r.id, name="Mia", role="Barista", avatar_url="https://placehold.co/96x96?text=M", bio="Latte art specialist and single-origin coffee lover."),
+                Staff(restaurant_id=r.id, name="Jake", role="Barista", avatar_url="https://placehold.co/96x96?text=J", bio="Espresso perfectionist; try his cappuccino."),
+                Staff(restaurant_id=r.id, name="Tess", role="Server", avatar_url="https://placehold.co/96x96?text=T", bio="Always smiling; she’ll make your visit delightful."),
+                Staff(restaurant_id=r.id, name="Leo", role="Cook", avatar_url="https://placehold.co/96x96?text=L", bio="Creative chef; responsible for daily specials."),
             ]
             db.session.add_all(staff)
 
@@ -68,7 +68,7 @@ def run_seed():
             for _ in range(10):
                 s = random.choice(staff)
                 rating = random.randint(4, 5)
-                rv = Review(restaurant_id=r.id, staff_id=s.id, user_id=None, rating=rating, comment=random.choice(["Excelente", "Muy bueno", "Genial café", "Servicio amable"]))
+                rv = Review(restaurant_id=r.id, staff_id=s.id, user_id=None, rating=rating, comment=random.choice(["Excellent", "Very good", "Great coffee", "Friendly service"]))
                 db.session.add(rv)
 
         db.session.commit()
@@ -76,9 +76,9 @@ def run_seed():
         # Seed coupons for the demo restaurant
         if not Coupon.query.filter_by(restaurant_id=r.id).first():
             db.session.add_all([
-                Coupon(restaurant_id=r.id, title="Café gratis", description="1 bebida gratuita (talla pequeña)", required_xp=100, active=True),
-                Coupon(restaurant_id=r.id, title="2x1 Latte", description="Válido de Lun a Jue", required_xp=250, active=True),
-                Coupon(restaurant_id=r.id, title="Merch de regalo", description="Tote bag edición limitada", required_xp=500, active=True),
+                Coupon(restaurant_id=r.id, title="Free Coffee", description="1 free drink (small)", required_xp=100, active=True),
+                Coupon(restaurant_id=r.id, title="2-for-1 Latte", description="Valid Mon–Thu", required_xp=250, active=True),
+                Coupon(restaurant_id=r.id, title="Free Merch", description="Limited edition tote bag", required_xp=500, active=True),
             ])
             db.session.commit()
 
@@ -88,7 +88,7 @@ def run_seed():
                 s.rating_avg = sum([rv.rating for rv in s.reviews]) / len(s.reviews)
         db.session.commit()
 
-        print("Seed completado: Café Luna disponible en /r/cafe-luna")
+        print("Seed complete: Cafe Luna available at /r/cafe-luna")
 
 
 if __name__ == "__main__":

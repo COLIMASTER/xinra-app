@@ -1,5 +1,5 @@
 {% extends "_base.html" %}
-{% block title %}Dar propina - {{ restaurant.name }}{% endblock %}
+{% block title %}Send a Tip - {{ restaurant.name }}{% endblock %}
 {% block content %}
 <div class="brand-hero text-center mb-3">
   <div class="brand-card d-inline-flex flex-column align-items-center p-3">
@@ -18,11 +18,11 @@
   {{ form.staff_id }}
 
   <div class="mb-3">
-    <label class="form-label">Elige a quién</label>
+    <label class="form-label">Choose a recipient</label>
     <div class="row row-cols-2 row-cols-sm-3 g-2">
       {% for s in staff_list %}
       <div class="col">
-        {% set bio_text = s.bio or 'Trayectoria destacada en servicio y café de especialidad. Formación barista, atención al detalle y pasión por la experiencia del cliente. Fan del latte art y las recetas de autor.' %}
+        {% set bio_text = s.bio or 'Outstanding service background and specialty coffee. Barista training, attention to detail, and passion for customer experience. Latte art fan and signature recipes.' %}
         <div class="card staff-card tilt text-center" data-staff-id="{{ s.id }}" data-bio="{{ bio_text }}" data-name="{{ s.name }}" data-role="{{ s.role }}" data-avatar="{{ s.avatar_url or '' }}">
           <div class="card-body p-2 tilt-layer">
             {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="rounded-circle mb-1" style="width:48px;height:48px;object-fit:cover;">{% else %}<i class="bi bi-person-circle fs-1"></i>{% endif %}
@@ -37,7 +37,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Monto</label>
+    <label class="form-label">Amount</label>
     <div class="d-flex gap-2 mb-2 flex-wrap">
       <button type="button" class="btn btn-outline-primary amount-btn" data-amount="200">$2</button>
       <button type="button" class="btn btn-outline-primary amount-btn" data-amount="500">$5</button>
@@ -51,7 +51,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Método</label>
+    <label class="form-label">Method</label>
     <div class="d-flex gap-2 flex-wrap">
       <button type="button" class="btn btn-outline-dark method-btn" data-method="apple_pay"><i class="bi bi-apple"></i> Apple Pay</button>
       <button type="button" class="btn btn-outline-dark method-btn" data-method="google_pay"><i class="bi bi-google"></i> Google Pay</button>
@@ -70,7 +70,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="bioTitle">Biografía</h5>
+        <h5 class="modal-title" id="bioTitle">Biography</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -84,7 +84,7 @@
         <div id="bioText" class="small"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -140,7 +140,7 @@
         const name = card.dataset.name || '';
         const role = card.dataset.role || '';
         const avatar = card.dataset.avatar || '';
-        document.getElementById('bioTitle').textContent = 'Biografía';
+        document.getElementById('bioTitle').textContent = 'Biography';
         document.getElementById('bioText').textContent = bioText;
         document.getElementById('bioName').textContent = name;
         document.getElementById('bioRole').textContent = role;

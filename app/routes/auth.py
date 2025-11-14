@@ -19,7 +19,7 @@ def login():
     if form.validate_on_submit():
         try:
             authenticate(form.email.data, form.password.data)
-            flash("Bienvenido", "success")
+            flash("Welcome", "success")
             next_url = request.args.get("next") or url_for("auth.profile")
             return redirect(next_url)
         except ValueError as e:
@@ -33,7 +33,7 @@ def register():
     if form.validate_on_submit():
         try:
             register_user(form.email.data, form.password.data, form.name.data)
-            flash("Cuenta creada", "success")
+            flash("Account created", "success")
             return redirect(url_for("auth.profile"))
         except ValueError as e:
             flash(str(e), "danger")
@@ -44,7 +44,7 @@ def register():
 @login_required
 def logout():
     logout_user()
-    flash("Sesion cerrada", "info")
+    flash("Signed out", "info")
     return redirect(url_for("public.home"))
 
 
@@ -143,14 +143,14 @@ def claim_coupon(coupon_id: int):
     user = current_user if current_user.is_authenticated else device_util.get_or_create_guest_user()
     c = Coupon.query.filter_by(id=coupon_id, active=True).first()
     if not c:
-        flash("Cupón no disponible", "danger")
+        flash("Coupon not available", "danger")
         return redirect(url_for("auth.profile"))
     if (user.xp or 0) < int(c.required_xp or 0):
-        flash("Aún no alcanzas el XP requerido", "danger")
+        flash("You haven't reached the required XP yet", "danger")
         return redirect(url_for("auth.profile"))
     exists = CouponRedemption.query.filter_by(coupon_id=c.id, user_id=user.id).first()
     if exists:
-        flash("Este cupón ya fue reclamado", "info")
+        flash("This coupon has already been claimed", "info")
         return redirect(url_for("auth.profile"))
 
     code = _gen_coupon_code(10)
@@ -162,7 +162,7 @@ def claim_coupon(coupon_id: int):
     cr = CouponRedemption(coupon_id=c.id, user_id=user.id, code=code, status="claimed")
     db.session.add(cr)
     db.session.commit()
-    flash("Cupón reclamado", "success")
+    flash("Coupon claimed", "success")
     return redirect(url_for("auth.profile"))
 
 
@@ -187,21 +187,21 @@ def _compute_achievements(user: User, all_tips: list[Tip], all_reviews: list[Rev
     critic = sum(1 for r in all_reviews if (r.rating or 0) >= 4) >= 5
 
     return [
-        {'key': 'explorer', 'name': 'Explorador de cafés', 'earned': explorer, 'desc': 'Visita 3+ cafeterías diferentes'},
-        {'key': 'latte_fan', 'name': 'Fan del latte art', 'earned': fan_latte, 'desc': '5+ propinas a baristas'},
-        {'key': 'kind_critic', 'name': 'Crítico amable', 'earned': critic, 'desc': '5+ reseñas con 4★ o más'},
+        {'key': 'explorer', 'name': 'Cafe Explorer', 'earned': explorer, 'desc': 'Visit 3+ different cafés'},
+        {'key': 'latte_fan', 'name': 'Latte Art Fan', 'earned': fan_latte, 'desc': '5+ tips to baristas'},
+        {'key': 'kind_critic', 'name': 'Kind Critic', 'earned': critic, 'desc': '5+ reviews with 4★ or more'},
     ]
 
 
 def _compute_weekly_mission(user: User):
-    # Misión: 3 propinas esta semana
+    # Mission: 3 tips this week
     now = datetime.utcnow()
     start_week = now - timedelta(days=now.weekday())
     start_week = datetime(start_week.year, start_week.month, start_week.day)
     count = Tip.query.filter_by(user_id=user.id).filter(Tip.created_at >= start_week).count()
     goal = 3
     return {
-        'title': 'Da 3 propinas esta semana',
+        'title': 'Give 3 tips this week',
         'progress': min(count, goal),
         'goal': goal,
         'completed': count >= goal,
@@ -272,13 +272,13 @@ def summary():
 def merge_guest():
     did = device_util.get_device_id()
     if not did:
-        flash("No hay datos de dispositivo a fusionar", "info")
+        flash("No device data to merge", "info")
         return redirect(url_for("auth.profile"))
     dh = device_util.device_hash(did)
     guest = User.query.filter_by(device_id_hash=dh).first()
     if not guest or guest.id == current_user.id:
-        flash("No hay actividad anonima para fusionar", "info")
+        flash("No anonymous activity to merge", "info")
         return redirect(url_for("auth.profile"))
     merge_guest_into_user(guest, current_user)
-    flash("Perfil anonimo fusionado", "success")
+    flash("Anonymous profile merged", "success")
     return redirect(url_for("auth.profile"))

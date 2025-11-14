@@ -1,29 +1,29 @@
 {% extends "_base.html" %}
-{% block title %}¡Gracias! - {{ restaurant.name }}{% endblock %}
+{% block title %}Thanks! - {{ restaurant.name }}{% endblock %}
 {% block content %}
 <div class="text-center">
-  <div class="display-6">¡Gracias por tu apoyo!</div>
-  {% if staff %}<div class="lead mt-1">Has apoyado a {{ staff.name }}</div>{% endif %}
+  <div class="display-6">Thanks for your support!</div>
+  {% if staff %}<div class="lead mt-1">You supported {{ staff.name }}</div>{% endif %}
   {% if user %}
   <div class="mt-4">
-    <div class="h5">¡Eres Supporter Nivel {{ current_level }}!</div>
+    <div class="h5">You are Supporter Level {{ current_level }}!</div>
     {% if next_tier %}
-      <div class="small text-muted">Progreso al siguiente nivel ({{ next_tier.name }} - {{ next_tier.threshold_xp }} XP)</div>
+      <div class="small text-muted">Progress to next level ({{ next_tier.name }} - {{ next_tier.threshold_xp }} XP)</div>
       <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
         <div class="progress-bar" style="width: {{ progress_pct }}%"></div>
       </div>
     {% else %}
-      <div class="small text-muted">Has alcanzado el nivel máximo</div>
+      <div class="small text-muted">You reached the maximum level</div>
     {% endif %}
   </div>
   {% else %}
   <div class="mt-3">
-    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">Crea tu cuenta para guardar tus puntos</a>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">Create an account to save your points</a>
   </div>
   {% endif %}
 
   <div class="mt-4">
-    <a href="#" class="btn btn-link">Seguir al restaurante</a>
+    <a href="#" class="btn btn-link">Follow the restaurant</a>
   </div>
 </div>
 {% endblock %}

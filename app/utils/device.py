@@ -31,7 +31,7 @@ def get_or_create_guest_user() -> User:
     dh = device_hash(did)
     user = User.query.filter_by(device_id_hash=dh).first()
     if not user:
-        user = User(device_id_hash=dh, name="Invitado")
+        user = User(device_id_hash=dh, name="Guest")
         db.session.add(user)
         db.session.commit()
     return user

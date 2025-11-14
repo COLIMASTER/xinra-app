@@ -261,7 +261,7 @@ function initAdminCharts(){
         labels,
         datasets: [
           {
-            label: 'Mes actual',
+            label: 'Current month',
             data: current,
             borderColor: 'rgba(255,140,64,1)',
             backgroundColor: 'rgba(255,140,64,0.25)',
@@ -271,7 +271,7 @@ function initAdminCharts(){
             borderWidth: 2.5,
           },
           {
-            label: 'Mes anterior',
+            label: 'Previous month',
             data: previous,
             borderColor: 'rgba(160,164,171,0.9)',
             backgroundColor: 'rgba(160,164,171,0.20)',
@@ -307,7 +307,7 @@ function initAdminCharts(){
       data: {
         labels: staff_labels,
         datasets: [{
-          label: 'Propinas por trabajador',
+          label: 'Tips per staff',
           data: staff_totals,
           backgroundColor: grad,
           borderColor: 'rgba(255,140,64,1)',

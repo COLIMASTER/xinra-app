@@ -32,7 +32,7 @@ def _require_admin_restaurant() -> Restaurant:
         .first()
     )
     if not m:
-        flash("No tienes acceso de administrador", "danger")
+        flash("You don't have admin access", "danger")
         abort(403)
     return m.restaurant
 
@@ -138,7 +138,7 @@ def restaurant_logo():
     r = _require_admin_restaurant()
     file = request.files.get("logo")
     if not file:
-        flash("Selecciona una imagen", "danger")
+        flash("Select an image", "danger")
         return redirect(url_for("dashboard.restaurant_view"))
     try:
         url, _, _ = process_and_save_image(file)
@@ -148,7 +148,7 @@ def restaurant_logo():
     r.logo_url = url
     db.session.add(r)
     db.session.commit()
-    flash("Logo actualizado", "success")
+    flash("Logo updated", "success")
     return redirect(url_for("dashboard.restaurant_view"))
 
 
@@ -159,7 +159,7 @@ def restaurant_logo_delete():
     r.logo_url = None
     db.session.add(r)
     db.session.commit()
-    flash("Logo eliminado", "info")
+    flash("Logo removed", "info")
     return redirect(url_for("dashboard.restaurant_view"))
 
 
@@ -193,9 +193,9 @@ def payouts_view():
                 tr = Transfer(restaurant_id=r.id, staff_id=staff_id, amount_cents=amt, status="sent")
                 db.session.add(tr)
                 db.session.commit()
-                flash("Transferencia creada", "success")
+                flash("Transfer created", "success")
             else:
-                flash("Nada pendiente para este trabajador", "info")
+                flash("Nothing pending for this staff", "info")
         return redirect(url_for("dashboard.payouts_view"))
 
     transfers = Transfer.query.filter_by(restaurant_id=r.id).order_by(Transfer.created_at.desc()).limit(20).all()
@@ -219,12 +219,12 @@ def coupons_create():
     description = (request.form.get("description") or "").strip() or None
     active = True if request.form.get("active") else False
     if not title:
-        flash("Titulo requerido", "danger")
+        flash("Title required", "danger")
         return redirect(url_for("dashboard.coupons_manage"))
     c = Coupon(restaurant_id=r.id, title=title, description=description, required_xp=required_xp, active=active)
     db.session.add(c)
     db.session.commit()
-    flash("Cupon creado", "success")
+    flash("Coupon created", "success")
     return redirect(url_for("dashboard.coupons_manage"))
 
 
@@ -238,7 +238,7 @@ def coupons_update(coupon_id: int):
     c.active = True if request.form.get("active") else False
     db.session.add(c)
     db.session.commit()
-    flash("Cupon actualizado", "success")
+    flash("Coupon updated", "success")
     return redirect(url_for("dashboard.coupons_manage"))
 
 
@@ -249,7 +249,7 @@ def coupons_delete(coupon_id: int):
     c = Coupon.query.filter_by(id=coupon_id, restaurant_id=r.id).first_or_404()
     db.session.delete(c)
     db.session.commit()
-    flash("Cupon eliminado", "info")
+    flash("Coupon deleted", "info")
     return redirect(url_for("dashboard.coupons_manage"))
 
 
@@ -310,7 +310,7 @@ def staff_create():
     role = (request.form.get("role") or "").strip() or None
     bio = (request.form.get("bio") or "").strip() or None
     if not name:
-        flash("Nombre requerido", "danger")
+        flash("Name required", "danger")
         return redirect(url_for("dashboard.staff_manage"))
     avatar_file = request.files.get("avatar")
     avatar_url = None
@@ -323,7 +323,7 @@ def staff_create():
     s = Staff(restaurant_id=r.id, name=name, role=role, bio=bio, avatar_url=avatar_url)
     db.session.add(s)
     db.session.commit()
-    flash("Trabajador creado", "success")
+    flash("Staff member created", "success")
     return redirect(url_for("dashboard.staff_manage"))
 
 
@@ -346,7 +346,7 @@ def staff_update(staff_id: int):
             return redirect(url_for("dashboard.staff_manage"))
     db.session.add(s)
     db.session.commit()
-    flash("Trabajador actualizado", "success")
+    flash("Staff member updated", "success")
     return redirect(url_for("dashboard.staff_manage"))
 
 
@@ -358,5 +358,5 @@ def staff_delete(staff_id: int):
     s.active = False
     db.session.add(s)
     db.session.commit()
-    flash("Trabajador eliminado (inactivo)", "info")
+    flash("Staff member marked inactive", "info")
     return redirect(url_for("dashboard.staff_manage"))

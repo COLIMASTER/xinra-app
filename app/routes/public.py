@@ -18,7 +18,7 @@ def home():
     if r:
         return redirect(url_for("public.tip_page", restaurant_slug=r.slug))
     return (
-        "No hay restaurantes configurados. Ejecuta: python -m app.seed",
+        "No restaurants configured. Run: python -m app.seed",
         200,
     )
 
@@ -47,7 +47,7 @@ def tip_page(restaurant_slug):
         tip = create_tip(restaurant.id, staff_id, user, form.amount_cents.data, form.method_ui.data)
         resp = make_response(redirect(url_for("public.feedback_page", restaurant_slug=restaurant.slug, tip=tip.id)))
         device_util.ensure_device_cookie(resp)
-        flash("Propina registrada. ¡Gracias!", "success")
+        flash("Tip recorded. Thank you!", "success")
         return resp
     return render_template("public/tip.html", restaurant=restaurant, staff_list=staff_list, form=form)
 
@@ -70,7 +70,7 @@ def feedback_page(restaurant_slug):
             return render_template("public/feedback.html", restaurant=restaurant, tip=tip, staff=staff, form=form)
         resp = make_response(redirect(url_for("public.thanks_page", restaurant_slug=restaurant.slug, tip=tip.id if tip else None)))
         device_util.ensure_device_cookie(resp)
-        flash("¡Feedback enviado!", "success")
+        flash("Feedback sent!", "success")
         return resp
     return render_template("public/feedback.html", restaurant=restaurant, tip=tip, staff=staff, form=form)
 

@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
-{% block title %}Desglose{% endblock %}
+{% block title %}Breakdown{% endblock %}
 {% block content %}
-<h3>{{ restaurant.name }} — Desglose</h3>
+<h3>{{ restaurant.name }} — Breakdown</h3>
 
 <ul class="nav nav-tabs mb-3">
   <li class="nav-item"><a class="nav-link {% if tab=='tips' %}active{% endif %}" href="?tab=tips">Tips</a></li>
@@ -16,7 +16,7 @@
 {% if tab=='tips' %}
 <div class="table-responsive">
   <table class="table table-sm">
-    <thead><tr><th>ID</th><th>Fecha</th><th>Monto</th><th>Método</th><th>Staff</th><th>User</th></tr></thead>
+    <thead><tr><th>ID</th><th>Date</th><th>Amount</th><th>Method</th><th>Staff</th><th>User</th></tr></thead>
     <tbody>
       {% for t in tips %}
       <tr><td>{{ t.id }}</td><td>{{ t.created_at }}</td><td>${{ '%.2f' % (t.amount_cents/100) }}</td><td>{{ t.method_ui }}</td><td>{{ t.staff_id }}</td><td>{{ t.user_id }}</td></tr>
@@ -26,7 +26,7 @@
 {% else %}
 <div class="table-responsive">
   <table class="table table-sm">
-    <thead><tr><th>ID</th><th>Fecha</th><th>Rating</th><th>Comentario</th><th>Staff</th><th>User</th></tr></thead>
+    <thead><tr><th>ID</th><th>Date</th><th>Rating</th><th>Comment</th><th>Staff</th><th>User</th></tr></thead>
     <tbody>
       {% for r in reviews %}
       <tr><td>{{ r.id }}</td><td>{{ r.created_at }}</td><td>{{ r.rating }}</td><td>{{ r.comment }}</td><td>{{ r.staff_id }}</td><td>{{ r.user_id }}</td></tr>

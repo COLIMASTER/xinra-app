@@ -1,12 +1,12 @@
 {% extends "_base.html" %}
-{% block title %}Tu año en cafés{% endblock %}
+{% block title %}Your year in cafés{% endblock %}
 {% block content %}
 <div class="row g-3">
   <div class="col-12">
     <div class="card p-3">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <h4 class="mb-0">Tu año en cafés</h4>
-        <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-dark btn-sm">Volver al perfil</a>
+        <h4 class="mb-0">Your year in cafés</h4>
+        <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-dark btn-sm">Back to profile</a>
       </div>
     </div>
   </div>
@@ -15,17 +15,17 @@
     <div class="card p-3 h-100">
       <h6 class="text-muted">Resumen</h6>
       <div class="d-flex flex-column gap-2 mt-2">
-        <div><span class="small text-muted">Propinas</span><div class="h5 mb-0">{{ total_count }}</div></div>
+        <div><span class="small text-muted">Tips</span><div class="h5 mb-0">{{ total_count }}</div></div>
         <div><span class="small text-muted">Total</span><div class="h5 mb-0">€{{ '%.2f' % (total_cents/100) }}</div></div>
         <div><span class="small text-muted">Promedio</span><div class="h5 mb-0">€{{ '%.2f' % (avg_cents/100) }}</div></div>
-        <div><span class="small text-muted">Reseñas</span><div class="h5 mb-0">{{ reviews_count }}</div></div>
+        <div><span class="small text-muted">Reviews</span><div class="h5 mb-0">{{ reviews_count }}</div></div>
       </div>
     </div>
   </div>
 
   <div class="col-12 col-lg-4">
     <div class="card p-3 h-100">
-      <h6 class="text-muted">Top cafeterías (por total)</h6>
+      <h6 class="text-muted">Top cafés (by total)</h6>
       {% if top_rest %}
       <ul class="list-group list-group-flush mt-2">
         {% for r, amt in top_rest %}
@@ -36,14 +36,14 @@
         {% endfor %}
       </ul>
       {% else %}
-      <div class="text-muted">Aún sin datos</div>
+      <div class="text-muted">No data yet</div>
       {% endif %}
     </div>
   </div>
 
   <div class="col-12 col-lg-4">
     <div class="card p-3 h-100">
-      <h6 class="text-muted">Métodos más usados</h6>
+      <h6 class="text-muted">Most used methods</h6>
       {% if by_method %}
       <ul class="list-group list-group-flush mt-2">
         {% for k, v in by_method.items() %}
@@ -54,18 +54,18 @@
         {% endfor %}
       </ul>
       {% else %}
-      <div class="text-muted">Aún sin datos</div>
+      <div class="text-muted">No data yet</div>
       {% endif %}
     </div>
   </div>
 
   <div class="col-12">
     <div class="card p-3">
-      <h6 class="text-muted">Últimos 12 meses</h6>
+      <h6 class="text-muted">Last 12 months</h6>
       {% if timeline %}
       <div class="table-responsive mt-2">
         <table class="table table-sm align-middle">
-          <thead><tr><th>Mes</th><th>Total</th></tr></thead>
+          <thead><tr><th>Month</th><th>Total</th></tr></thead>
           <tbody>
             {% for row in timeline %}
             <tr><td>{{ row.label }}</td><td>€{{ '%.2f' % (row.amount_cents/100) }}</td></tr>
@@ -74,11 +74,10 @@
         </table>
       </div>
       {% else %}
-      <div class="text-muted">Sin actividad aún</div>
+      <div class="text-muted">No activity yet</div>
       {% endif %}
     </div>
   </div>
 
 </div>
 {% endblock %}
-

@@ -1,43 +1,43 @@
 {% extends "_base.html" %}
-{% block title %}Cupones - {{ restaurant.name }}{% endblock %}
+{% block title %}Coupons - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<h3 class="mb-3 fancy-title">Cupones · {{ restaurant.name }}</h3>
+<h3 class="mb-3 fancy-title">Coupons · {{ restaurant.name }}</h3>
 
 <div class="card p-3 shadow-sm mb-3">
-  <h5 class="mb-2">Crear cupón</h5>
+  <h5 class="mb-2">Create coupon</h5>
   <form class="row g-2" method="post" action="{{ url_for('dashboard.coupons_create') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-12 col-md-3">
-      <label class="form-label">Título</label>
-      <input class="form-control" type="text" name="title" placeholder="Ej. Café gratis">
+      <label class="form-label">Title</label>
+      <input class="form-control" type="text" name="title" placeholder="e.g. Free Coffee">
     </div>
     <div class="col-12 col-md-2">
       <label class="form-label"></label>
       <input class="form-control" type="number" name="required_xp" value="0" min="0" step="10">
     </div>
     <div class="col-12 col-md-5">
-      <label class="form-label">Descripción</label>
-      <input class="form-control" type="text" name="description" placeholder="Condiciones, vencimiento, etc.">
+      <label class="form-label">Description</label>
+      <input class="form-control" type="text" name="description" placeholder="Conditions, expiry, etc.">
     </div>
     <div class="col-6 col-md-1 d-flex align-items-end">
       <div class="form-check">
         <input class="form-check-input" type="checkbox" name="active" id="activeNew" checked>
-        <label class="form-check-label" for="activeNew">Activo</label>
+        <label class="form-check-label" for="activeNew">Active</label>
       </div>
     </div>
     <div class="col-6 col-md-1 d-flex align-items-end">
-      <button class="btn btn-primary w-100" type="submit">Crear</button>
+      <button class="btn btn-primary w-100" type="submit">Create</button>
     </div>
   </form>
   </div>
 
 <div class="card p-3 shadow-sm">
-  <h5 class="mb-2">Cupones existentes</h5>
+  <h5 class="mb-2">Existing coupons</h5>
   {% if coupons %}
   <div class="table-responsive">
     <table class="table align-middle">
       <thead>
-        <tr><th>Título</th><th>Descripción</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+        <tr><th>Title</th><th>Description</th><th>Status</th><th class="text-end">Actions</th></tr>
       </thead>
       <tbody>
       {% for c in coupons %}
@@ -51,18 +51,18 @@
               <div class="col-6 col-md-1 d-flex align-items-center">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" name="active" id="active{{ c.id }}" {% if c.active %}checked{% endif %}>
-                  <label class="form-check-label" for="active{{ c.id }}">Activo</label>
+                  <label class="form-check-label" for="active{{ c.id }}">Active</label>
                 </div>
               </div>
               <div class="col-6 col-md-1 text-end">
-                <button class="btn btn-primary btn-sm" type="submit">Guardar</button>
+                <button class="btn btn-primary btn-sm" type="submit">Save</button>
               </div>
             </form>
           </td>
           <td colspan="3" class="text-end">
             <form method="post" action="{{ url_for('dashboard.coupons_delete', coupon_id=c.id) }}" class="d-inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="btn btn-outline-dark btn-sm" type="submit" onclick="return confirm('¿Eliminar cupón?')">Eliminar</button>
+              <button class="btn btn-outline-dark btn-sm" type="submit" onclick="return confirm('Delete coupon?')">Delete</button>
             </form>
           </td>
         </tr>
@@ -71,9 +71,9 @@
     </table>
   </div>
   {% else %}
-    <div class="text-muted">Aún no hay cupones.</div>
+    <div class="text-muted">No coupons yet.</div>
   {% endif %}
-  <div class="mt-2"><a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.restaurant_view') }}">Volver</a></div>
+  <div class="mt-2"><a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.restaurant_view') }}">Back</a></div>
   </div>
 {% endblock %}
 

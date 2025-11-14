@@ -9,25 +9,25 @@ class TipForm(FlaskForm):
     staff_id = HiddenField(validators=[Optional()])
     amount_cents = IntegerField(validators=[DataRequired(), NumberRange(min=100, max=50000)])
     method_ui = SelectField(choices=[("apple_pay", "Apple Pay"), ("google_pay", "Google Pay"), ("paypal", "PayPal")], validators=[DataRequired()])
-    submit = SubmitField("Dar propina")
+    submit = SubmitField("Send tip")
 
 
 class ReviewForm(FlaskForm):
     rating = IntegerField(validators=[DataRequired(), NumberRange(min=1, max=5)])
     comment = TextAreaField(validators=[Optional(), Length(max=500)])
     share_allowed = BooleanField()
-    photo = FileField(validators=[Optional(), FileAllowed(["jpg", "jpeg", "png"], "Solo jpg/png")])
-    submit = SubmitField("Enviar feedback")
+    photo = FileField(validators=[Optional(), FileAllowed(["jpg", "jpeg", "png"], "JPG/PNG only")])
+    submit = SubmitField("Send feedback")
 
 
 class RegisterForm(FlaskForm):
     email = StringField(validators=[DataRequired(), Email()])
     password = PasswordField(validators=[DataRequired(), Length(min=6)])
     name = StringField(validators=[DataRequired(), Length(min=2, max=120)])
-    submit = SubmitField("Crear cuenta")
+    submit = SubmitField("Create account")
 
 
 class LoginForm(FlaskForm):
     email = StringField(validators=[DataRequired(), Email()])
     password = PasswordField(validators=[DataRequired()])
-    submit = SubmitField("Entrar")
+    submit = SubmitField("Sign in")

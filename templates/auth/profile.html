@@ -1,39 +1,39 @@
 {% extends "_base.html" %}
-{% block title %}Perfil{% endblock %}
+{% block title %}Profile{% endblock %}
 {% block content %}
 <div class="card p-4 shadow-sm mb-3 profile-hero">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
     <div class="d-flex align-items-center gap-3">
       <div class="avatar-fallback avatar-lg">{{ (user.name or 'U')[:1].upper() }}</div>
       <div>
-        <h4 class="mb-1">{{ user.name or 'Usuario' }}</h4>
-        <div class="small text-muted">{{ user.email or 'Invitado' }}</div>
+        <h4 class="mb-1">{{ user.name or 'User' }}</h4>
+        <div class="small text-muted">{{ user.email or 'Guest' }}</div>
       </div>
     </div>
     <div class="d-flex align-items-center gap-4">
       <div class="xp-ring" data-progress="{{ progress_pct }}">
         <div class="text-center">
           <div class="label">{{ progress_pct }}%</div>
-          <div class="sub">Nivel {{ user.level }}</div>
+          <div class="sub">Level {{ user.level }}</div>
         </div>
       </div>
       <div>
         <div class="small text-muted">XP: {{ user.xp }}</div>
         {% if next_tier %}
-          <div class="small text-muted">Siguiente: {{ next_tier.name }} ({{ next_tier.threshold_xp }} XP)</div>
+          <div class="small text-muted">Next: {{ next_tier.name }} ({{ next_tier.threshold_xp }} XP)</div>
         {% else %}
-          <div class="small text-muted">Máximo nivel alcanzado</div>
+          <div class="small text-muted">Max level reached</div>
         {% endif %}
         <form class="mt-2" method="post" action="{{ url_for('auth.merge_guest') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline-dark btn-sm" type="submit">Fusionar anónimo</button>
+          <button class="btn btn-outline-dark btn-sm" type="submit">Merge anonymous</button>
         </form>
       </div>
     </div>
   </div>
   {% if restaurants %}
   <div class="mt-3">
-    <div class="small text-muted mb-2">Restaurantes visitados</div>
+    <div class="small text-muted mb-2">Visited restaurants</div>
     <div class="d-flex flex-wrap gap-2">
       {% for r in restaurants %}
         <a class="resto-tile" href="{{ url_for('public.tip_page', restaurant_slug=r.slug) }}">
@@ -54,9 +54,9 @@
   <div class="col-12 col-lg-6">
     <div class="card p-3 mission-card h-100">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="mb-0">Misión semanal</h5>
+        <h5 class="mb-0">Weekly mission</h5>
         {% if mission.completed %}
-          <span class="badge text-bg-success">Completada</span>
+          <span class="badge text-bg-success">Completed</span>
         {% endif %}
       </div>
       <div class="small text-muted mb-2">{{ mission.title }}</div>
@@ -66,14 +66,14 @@
           <div class="progress-bar" style="width: {{ pct }}%"></div>
         </div>
       </div>
-      <div class="small text-muted">Progreso: {{ mission.progress }}/{{ mission.goal }} · Desde {{ mission.start.strftime('%Y-%m-%d') }}</div>
+      <div class="small text-muted">Progress: {{ mission.progress }}/{{ mission.goal }} · Since {{ mission.start.strftime('%Y-%m-%d') }}</div>
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="card p-3 h-100">
       <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Logros</h5>
-        <a href="{{ url_for('auth.summary') }}" class="btn btn-outline-dark btn-sm">Tu año en cafés</a>
+        <h5 class="mb-0">Achievements</h5>
+        <a href="{{ url_for('auth.summary') }}" class="btn btn-outline-dark btn-sm">Your year in cafés</a>
       </div>
       <div class="d-flex flex-wrap gap-2 mt-2">
         {% for a in achievements %}
@@ -82,7 +82,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="small text-muted mt-2">Pasa el cursor para ver el requisito.</div>
+      <div class="small text-muted mt-2">Hover to see the requirement.</div>
     </div>
   </div>
   
@@ -91,7 +91,7 @@
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="card p-3 shadow-sm h-100">
-      <h5 class="mb-2">Historial de propinas</h5>
+      <h5 class="mb-2">Tip history</h5>
       {% if tips %}
       <ul class="timeline">
         {% for t in tips %}
@@ -108,13 +108,13 @@
         {% endfor %}
       </ul>
       {% else %}
-      <div class="text-muted">Sin propinas aún.</div>
+      <div class="text-muted">No tips yet.</div>
       {% endif %}
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="card p-3 shadow-sm h-100">
-      <h5 class="mb-2">Historial de reseñas</h5>
+      <h5 class="mb-2">Review history</h5>
       {% if reviews %}
       <ul class="timeline">
         {% for r in reviews %}
@@ -140,7 +140,7 @@
         {% endfor %}
       </ul>
       {% else %}
-      <div class="text-muted">Sin reseñas aún.</div>
+      <div class="text-muted">No reviews yet.</div>
       {% endif %}
     </div>
   </div>
@@ -148,19 +148,19 @@
   <div class="col-12">
     <div class="card p-3 shadow-sm h-100">
       <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-2">Cupones</h5>
-        <small class="text-muted">Reclama sólo si lo deseas</small>
+        <h5 class="mb-2">Coupons</h5>
+        <small class="text-muted">Claim only if you want</small>
       </div>
 
       {% set any_available = available_by_rest and available_by_rest|length > 0 %}
       {% set any_claimed = claimed_by_rest and claimed_by_rest|length > 0 %}
 
       {% if any_available %}
-        <div class="small text-muted">Disponibles para reclamar</div>
+        <div class="small text-muted">Available to claim</div>
         {% for rest_id, pack in available_by_rest.items() %}
           {% set rest = pack.restaurant %}
           {% set coupons = pack.coupons %}
-          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurante' }}</div>
+          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurant' }}</div>
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
             {% for c in coupons %}
             <div class="col">
@@ -174,7 +174,7 @@
                 </div>
                 <form method="post" action="{{ url_for('auth.claim_coupon', coupon_id=c.id) }}" class="mt-3">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm coupon-claim-btn" type="submit">Reclamar</button>
+                  <button class="btn btn-sm coupon-claim-btn" type="submit">Claim</button>
                 </form>
               </div>
             </div>
@@ -184,19 +184,19 @@
       {% endif %}
 
       {% if any_claimed %}
-        <div class="small text-muted mt-4">Reclamados</div>
+        <div class="small text-muted mt-4">Claimed</div>
         {% for rest_id, pack in claimed_by_rest.items() %}
           {% set rest = pack.restaurant %}
           {% set reds = pack.redemptions %}
-          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurante' }}</div>
+          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurant' }}</div>
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
             {% for cr in reds %}
             <div class="col">
               <div class="card p-3 h-100 coupon-card">
-                <div class="fw-bold">{{ cr.coupon.title if cr.coupon else 'Cupón' }}</div>
+                <div class="fw-bold">{{ cr.coupon.title if cr.coupon else 'Coupon' }}</div>
                 {% if cr.coupon and cr.coupon.description %}<div class="small mt-1 text-muted">{{ cr.coupon.description }}</div>{% endif %}
-                <div class="mt-2 code-badge">Código: {{ cr.code }}</div>
-                <div class="small text-muted mt-1">Estado: {{ cr.status }}</div>
+                <div class="mt-2 code-badge">Code: {{ cr.code }}</div>
+                <div class="small text-muted mt-1">Status: {{ cr.status }}</div>
               </div>
             </div>
             {% endfor %}
@@ -205,7 +205,7 @@
       {% endif %}
 
       {% if not any_available and not any_claimed %}
-        <div class="text-muted">Aún no tienes cupones. Da una propina para desbloquear y reclama cuando quieras.</div>
+        <div class="text-muted">You have no coupons yet. Send a tip to unlock and claim when you want.</div>
       {% endif %}
     </div>
   </div>
