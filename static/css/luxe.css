@@ -77,6 +77,11 @@ body.theme-dark .timeline li{ display:flex; align-items:flex-start; gap:10px; pa
 body.theme-dark .timeline .dot{ width:10px; height:10px; border-radius:50%; background: linear-gradient(135deg, var(--gold), #e0c870); box-shadow: 0 0 10px var(--gold-soft); margin-top:6px }
 body.theme-dark .timeline .title{ font-weight: 600 }
 body.theme-dark .amount{ color: #e0c870 }
+body.theme-dark .badge-achievement{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid var(--lux-border); background: rgba(18,20,26,0.9); color: var(--lux-text); font-weight:600; font-size:13px }
+body.theme-dark .badge-achievement.locked{ opacity: .75 }
+body.theme-dark .badge-achievement.earned{ box-shadow: 0 6px 14px var(--gold-soft); border-color: rgba(212,175,55,0.6) }
+body.theme-dark .mission-card .progress{ height: 10px; background: rgba(255,255,255,0.08); border-radius: 999px }
+body.theme-dark .mission-card .progress-bar{ background: linear-gradient(90deg, #e0c870, #ffd36a); border-radius: 999px; color:#191b22 }
 
 /* Home (tip page) money visibility in dark mode */
 body.theme-dark .btn-outline-primary.amount-btn{

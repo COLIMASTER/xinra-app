@@ -50,6 +50,44 @@
   {% endif %}
 </div>
 
+<div class="row g-3 mb-3">
+  <div class="col-12 col-lg-6">
+    <div class="card p-3 mission-card h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Misión semanal</h5>
+        {% if mission.completed %}
+          <span class="badge text-bg-success">Completada</span>
+        {% endif %}
+      </div>
+      <div class="small text-muted mb-2">{{ mission.title }}</div>
+      <div class="mission-progress mb-2">
+        {% set pct = (100 * mission.progress // mission.goal) if mission.goal else 0 %}
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ mission.goal }}" aria-valuenow="{{ mission.progress }}">
+          <div class="progress-bar" style="width: {{ pct }}%"></div>
+        </div>
+      </div>
+      <div class="small text-muted">Progreso: {{ mission.progress }}/{{ mission.goal }} · Desde {{ mission.start.strftime('%Y-%m-%d') }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card p-3 h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Logros</h5>
+        <a href="{{ url_for('auth.summary') }}" class="btn btn-outline-dark btn-sm">Tu año en cafés</a>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        {% for a in achievements %}
+          <div class="badge-achievement {{ 'earned' if a.earned else 'locked' }}" title="{{ a.desc }}">
+            <i class="bi {{ 'bi-trophy-fill' if a.earned else 'bi-trophy' }} me-1"></i>{{ a.name }}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="small text-muted mt-2">Pasa el cursor para ver el requisito.</div>
+    </div>
+  </div>
+  
+</div>
+
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="card p-3 shadow-sm h-100">
