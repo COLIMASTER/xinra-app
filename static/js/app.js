@@ -120,7 +120,31 @@ function initXpRing(){
   });
 }
 
+// Theme toggle (light/dark) with persistence
+function applyTheme(mode){
+  const dark = (mode === 'dark');
+  document.body.classList.toggle('theme-dark', dark);
+  try { localStorage.setItem('theme.mode', dark ? 'dark' : 'light'); } catch(e){}
+  const icon = document.getElementById('themeToggleIcon');
+  if (icon){ icon.className = dark ? 'bi bi-sun-fill' : 'bi bi-moon-stars'; }
+}
+
+function initThemeToggle(){
+  let mode = 'light';
+  try { mode = localStorage.getItem('theme.mode') || 'light'; } catch(e){}
+  applyTheme(mode);
+  const btn = document.getElementById('themeToggle');
+  if (btn){
+    btn.addEventListener('click', () => {
+      const next = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+      applyTheme(next);
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply saved theme first
+  initThemeToggle();
   // Color palette controls removed from UI
   initChartsDefaults();
   animateCards();

@@ -8,15 +8,25 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   <link href="/static/css/custom.css" rel="stylesheet">
+  <link href="/static/css/luxe.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center gap-2 brand-text" href="{{ url_for('public.tip_page', restaurant_slug='cafe-luna') }}">XINRA</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <button class="btn btn-outline-dark btn-sm" id="themeToggle" type="button" title="Cambiar tema" aria-label="Cambiar tema">
+          <i id="themeToggleIcon" class="bi bi-moon-stars"></i>
+        </button>
+        <button class="navbar-toggler luxe-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="hamburger" aria-hidden="true">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </span>
+        </button>
+      </div>
       <div class="collapse navbar-collapse" id="nav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item"><a class="nav-link" href="{{ url_for('public.tip_page', restaurant_slug='cafe-luna') }}">Home</a></li>

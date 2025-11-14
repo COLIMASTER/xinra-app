@@ -31,67 +31,78 @@
       </div>
     </div>
   </div>
+  {% if restaurants %}
+  <div class="mt-3">
+    <div class="small text-muted mb-2">Restaurantes visitados</div>
+    <div class="d-flex flex-wrap gap-2">
+      {% for r in restaurants %}
+        <a class="resto-tile" href="{{ url_for('public.tip_page', restaurant_slug=r.slug) }}">
+          {% if r.logo_url %}
+            <img class="resto-logo" src="{{ r.logo_url }}" alt="{{ r.name }}">
+          {% else %}
+            <div class="resto-logo d-flex align-items-center justify-content-center">🍽️</div>
+          {% endif %}
+          <span>{{ r.name }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 <div class="row g-3">
-  <div class="col-12">
-    <div class="card p-3 shadow-sm mb-3">
-      <h5 class="mb-2">Restaurantes que has valorado</h5>
-      {% if restaurants %}
-      <div class="d-flex flex-wrap gap-2">
-        {% for r in restaurants %}
-          <a class="btn btn-outline-light btn-sm" href="{{ url_for('public.tip_page', restaurant_slug=r.slug) }}">{{ r.name }}</a>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="text-muted">Aun no has valorado ni dado propinas.</div>
-      {% endif %}
-    </div>
-  </div>
   <div class="col-12 col-lg-6">
     <div class="card p-3 shadow-sm h-100">
-      <h5 class="mb-2">Tus propinas</h5>
+      <h5 class="mb-2">Historial de propinas</h5>
       {% if tips %}
-      <ul class="list-group list-group-flush">
+      <ul class="timeline">
         {% for t in tips %}
-        <li class="list-group-item d-flex justify-content-between">
-          <span>{{ t.created_at.strftime('%Y-%m-%d') }} - {{ t.restaurant.name }} - {{ t.staff.name if t.staff_id else 'General' }}</span>
-          <span>€{{ '%.2f' % (t.amount_cents/100) }}</span>
+        <li>
+          <div class="dot"></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between">
+              <span class="title">{{ t.restaurant.name }} · {{ t.staff.name if t.staff_id else 'General' }}</span>
+              <span class="fw-bold amount">€{{ '%.2f' % (t.amount_cents/100) }}</span>
+            </div>
+            <div class="small text-muted">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          </div>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <div class="text-muted">Sin propinas aun.</div>
+      <div class="text-muted">Sin propinas aún.</div>
       {% endif %}
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="card p-3 shadow-sm h-100">
-      <h5 class="mb-2">Tus resenas</h5>
+      <h5 class="mb-2">Historial de reseñas</h5>
       {% if reviews %}
-      <ul class="list-group list-group-flush">
+      <ul class="timeline">
         {% for r in reviews %}
-        <li class="list-group-item">
-          <div class="d-flex justify-content-between">
-            <span>{{ r.created_at.strftime('%Y-%m-%d') }} - {{ r.restaurant.name }} - {{ r.staff.name if r.staff_id else 'General' }}</span>
-            <span>
-              {% for i in range(1,6) %}
-                {% if i <= r.rating %}
-                  &#9733;
-                {% else %}
-                  &#9734;
-                {% endif %}
-              {% endfor %}
-            </span>
+        <li>
+          <div class="dot"></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between">
+              <span class="title">{{ r.restaurant.name }} · {{ r.staff.name if r.staff_id else 'General' }}</span>
+              <span>
+                {% for i in range(1,6) %}
+                  {% if i <= r.rating %}
+                    <i class="bi bi-star-fill text-warning"></i>
+                  {% else %}
+                    <i class="bi bi-star text-warning"></i>
+                  {% endif %}
+                {% endfor %}
+              </span>
+            </div>
+            {% if r.comment %}<div class="small text-muted mt-1">{{ r.comment }}</div>{% endif %}
+            <div class="small text-muted">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
           </div>
-          {% if r.comment %}
-          <div class="small text-muted mt-1">{{ r.comment }}</div>
-          {% endif %}
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <div class="text-muted">Sin resenas aun.</div>
+      <div class="text-muted">Sin reseñas aún.</div>
       {% endif %}
     </div>
   </div>
@@ -99,11 +110,16 @@
   <div class="col-12">
     <div class="card p-3 shadow-sm h-100">
       <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-2">Cupones desbloqueados</h5>
-        <small class="text-muted">Se desbloquean al dar propina</small>
+        <h5 class="mb-2">Cupones</h5>
+        <small class="text-muted">Reclama sólo si lo deseas</small>
       </div>
-      {% if unlocked_by_rest and unlocked_by_rest|length > 0 %}
-        {% for rest_id, pack in unlocked_by_rest.items() %}
+
+      {% set any_available = available_by_rest and available_by_rest|length > 0 %}
+      {% set any_claimed = claimed_by_rest and claimed_by_rest|length > 0 %}
+
+      {% if any_available %}
+        <div class="small text-muted">Disponibles para reclamar</div>
+        {% for rest_id, pack in available_by_rest.items() %}
           {% set rest = pack.restaurant %}
           {% set coupons = pack.coupons %}
           <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurante' }}</div>
@@ -111,15 +127,47 @@
             {% for c in coupons %}
             <div class="col">
               <div class="card p-3 h-100 coupon-card">
-                <div class="fw-bold">{{ c.title }}</div>
-                {% if c.description %}<div class="small mt-1 text-muted">{{ c.description }}</div>{% endif %}
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-bold">{{ c.title }}</div>
+                    {% if c.description %}<div class="small mt-1 text-muted">{{ c.description }}</div>{% endif %}
+                  </div>
+                  <span class="badge-xp">{{ c.required_xp }} XP</span>
+                </div>
+                <form method="post" action="{{ url_for('auth.claim_coupon', coupon_id=c.id) }}" class="mt-3">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm coupon-claim-btn" type="submit">Reclamar</button>
+                </form>
               </div>
             </div>
             {% endfor %}
           </div>
         {% endfor %}
-      {% else %}
-        <div class="text-muted">Aún no has desbloqueado cupones. Da una propina para desbloquear los del restaurante.</div>
+      {% endif %}
+
+      {% if any_claimed %}
+        <div class="small text-muted mt-4">Reclamados</div>
+        {% for rest_id, pack in claimed_by_rest.items() %}
+          {% set rest = pack.restaurant %}
+          {% set reds = pack.redemptions %}
+          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurante' }}</div>
+          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            {% for cr in reds %}
+            <div class="col">
+              <div class="card p-3 h-100 coupon-card">
+                <div class="fw-bold">{{ cr.coupon.title if cr.coupon else 'Cupón' }}</div>
+                {% if cr.coupon and cr.coupon.description %}<div class="small mt-1 text-muted">{{ cr.coupon.description }}</div>{% endif %}
+                <div class="mt-2 code-badge">Código: {{ cr.code }}</div>
+                <div class="small text-muted mt-1">Estado: {{ cr.status }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if not any_available and not any_claimed %}
+        <div class="text-muted">Aún no tienes cupones. Da una propina para desbloquear y reclama cuando quieras.</div>
       {% endif %}
     </div>
   </div>

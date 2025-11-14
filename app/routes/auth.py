@@ -6,7 +6,7 @@ from ..services.auth_service import authenticate, register_user
 from ..services.merge_service import merge_guest_into_user
 from ..utils import device as device_util
 from ..extensions import db
-from ..models import User, Restaurant, Tip, Review, RewardTier, Coupon
+from ..models import User, Restaurant, Tip, Review, RewardTier, Coupon, CouponRedemption
 
 
 auth_bp = Blueprint("auth", __name__)
@@ -83,18 +83,34 @@ def profile():
             span = max(1, next_tier.threshold_xp - prev_thresh)
             progress_pct = int(100 * ((xp - prev_thresh) / span))
 
-    # Cupones desbloqueados por restaurante (requisito XP <= user.xp)
-    unlocked_by_rest = {}
+    # Cupones: disponibles para reclamar (no reclamados) y reclamados
+    available_by_rest = {}
+    claimed_by_rest = {}
     if restaurants:
+        # Redenciones del usuario
+        redemptions = CouponRedemption.query.filter_by(user_id=user.id).all()
+        claimed_ids = {cr.coupon_id for cr in redemptions}
+        by_rest_claimed = {}
+        for cr in redemptions:
+            if not cr.coupon:
+                continue
+            lst = by_rest_claimed.setdefault(cr.coupon.restaurant_id, [])
+            lst.append(cr)
+
         for r in restaurants:
-            cs = (
+            # disponibles con requisito XP cumplido y activos, excluyendo ya reclamados
+            q = (
                 Coupon.query.filter_by(restaurant_id=r.id, active=True)
                 .filter(Coupon.required_xp <= xp)
-                .order_by(Coupon.required_xp.asc())
-                .all()
             )
-            if cs:
-                unlocked_by_rest[r.id] = {"restaurant": r, "coupons": cs}
+            if claimed_ids:
+                q = q.filter(~Coupon.id.in_(claimed_ids))
+            available = q.order_by(Coupon.required_xp.asc()).all()
+            if available:
+                available_by_rest[r.id] = {"restaurant": r, "coupons": available}
+            claimed_list = by_rest_claimed.get(r.id)
+            if claimed_list:
+                claimed_by_rest[r.id] = {"restaurant": r, "redemptions": claimed_list}
 
     return render_template(
         "auth/profile.html",
@@ -104,8 +120,44 @@ def profile():
         reviews=reviews,
         next_tier=next_tier,
         progress_pct=progress_pct,
-        unlocked_by_rest=unlocked_by_rest,
+        available_by_rest=available_by_rest,
+        claimed_by_rest=claimed_by_rest,
     )
+
+
+def _gen_coupon_code(n: int = 10) -> str:
+    import secrets, string
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(n))
+
+
+@auth_bp.route("/me/coupons/<int:coupon_id>/claim", methods=["POST"]) 
+def claim_coupon(coupon_id: int):
+    # Permitir invitado (usuario creado por dispositivo)
+    user = current_user if current_user.is_authenticated else device_util.get_or_create_guest_user()
+    c = Coupon.query.filter_by(id=coupon_id, active=True).first()
+    if not c:
+        flash("Cupón no disponible", "danger")
+        return redirect(url_for("auth.profile"))
+    if (user.xp or 0) < int(c.required_xp or 0):
+        flash("Aún no alcanzas el XP requerido", "danger")
+        return redirect(url_for("auth.profile"))
+    exists = CouponRedemption.query.filter_by(coupon_id=c.id, user_id=user.id).first()
+    if exists:
+        flash("Este cupón ya fue reclamado", "info")
+        return redirect(url_for("auth.profile"))
+
+    code = _gen_coupon_code(10)
+    tries = 0
+    while CouponRedemption.query.filter_by(code=code).first() and tries < 5:
+        code = _gen_coupon_code(10)
+        tries += 1
+
+    cr = CouponRedemption(coupon_id=c.id, user_id=user.id, code=code, status="claimed")
+    db.session.add(cr)
+    db.session.commit()
+    flash("Cupón reclamado", "success")
+    return redirect(url_for("auth.profile"))
 
 
 @auth_bp.route("/me/merge-guest", methods=["POST"])

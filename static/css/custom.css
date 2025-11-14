@@ -96,6 +96,26 @@ body::before{
 .navbar-toggler{border-color: rgba(255,255,255,0.6)}
 .navbar-toggler-icon{filter: invert(1) brightness(2)}
 
+/* Custom hamburger toggler - light mode defaults */
+.luxe-toggler{ border-color: rgba(0,0,0,0.25)!important; background: rgba(255,255,255,0.85)!important; border-radius: 10px; padding: 6px 8px }
+.luxe-toggler .hamburger{ display:inline-flex; flex-direction:column; gap:4px; width:24px }
+.luxe-toggler .hamburger .bar{ height:2px; width:100%; background: #111; border-radius: 2px }
+
+/* Light theme base styles for new components */
+.resto-logo{ width:36px; height:36px; border-radius:8px; object-fit:cover; border:1px solid rgba(0,0,0,0.08) }
+.resto-tile{ display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid rgba(0,0,0,0.08); border-radius:14px; text-decoration:none; color:#111; background: rgba(255,255,255,0.9) }
+.resto-tile:hover{ background: rgba(255,255,255,1) }
+.timeline{ list-style:none; margin:0; padding:0 }
+.timeline li{ display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom: 1px dashed rgba(0,0,0,0.1) }
+.timeline .dot{ width:10px; height:10px; border-radius:50%; background: #ffa354; box-shadow: 0 0 6px rgba(255,140,64,0.35); margin-top:6px }
+.timeline .title{ font-weight:600 }
+.coupon-card{ position:relative; border:1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.9) }
+.coupon-card .badge-xp{ font-size:12px; color:#111; background: linear-gradient(135deg, #ffd36a, #e0c870); border:0; padding:2px 8px; border-radius:999px; font-weight:700 }
+.coupon-claim-btn{ background: linear-gradient(135deg, #ffd36a, #e0c870); color:#111; border:1px solid rgba(0,0,0,0.12) }
+.coupon-claim-btn:hover{ filter: brightness(1.02) }
+.code-badge{ background: rgba(255,140,64,0.08); color:#111; border:1px dashed rgba(255,140,64,0.6); padding:6px 10px; border-radius:8px; font-weight:600 }
+.amount{ color:#111 }
+
 /* Text brand */
 .brand-text{ font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif; font-weight: 800; letter-spacing: .6px; color: #111!important }
 
