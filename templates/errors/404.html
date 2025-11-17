@@ -1,0 +1,10 @@
+{% extends "_base.html" %}
+{% block title %}Página no encontrada{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-5 mb-3">404</h1>
+  <p class="lead mb-4">La página que buscas no existe o ha cambiado de dirección.</p>
+  <a class="btn btn-primary" href="{{ url_for('public.home') }}">Ir a la página principal</a>
+</div>
+{% endblock %}
+

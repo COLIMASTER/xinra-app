@@ -8,7 +8,7 @@ Paneles incluidos
 Como se guardan los datos
 - Desarrollo: por defecto usa SQLite (archivo dev.db) para simplificar.
 - Produccion: usa PostgreSQL. Los modelos estan listos para migraciones con Flask‑Migrate/Alembic.
-- Archivos (fotos): en desarrollo se guardan en la carpeta configurada (por defecto static/uploads). En produccion lo normal es S3/GCS.
+- Archivos (fotos): en desarrollo se guardan en la carpeta configurada (por defecto ./uploads, servida via /uploads). En produccion lo normal es S3/GCS.
 - Rate limiting/sesion: Flask‑Limiter funciona en memoria en desarrollo. En produccion se recomienda Redis para rate‑limits y sesiones.
 
 Requisitos
@@ -90,7 +90,7 @@ Onboarding para otra empresa
 FAQ
 - No veo "Admin" en el menu → tu usuario no tiene rol admin/manager en Membership.
 - No aparecen graficas → Chart.js debe cargar; ya se incluye con defer. Si personalizas plantillas, asegura que el JS de Chart corre despues de la carga.
-- Donde estan los archivos subidos → en static/uploads (desarrollo). En produccion usa S3/GCS y configura los ENV.
+- Donde estan los archivos subidos → en ./uploads (desarrollo) accesible por /uploads. En produccion usa S3/GCS y configura los ENV.
 
 Notas nuevas
 - Cupones: administra cupones por restaurante en `/dashboard/coupons`. Los usuarios pueden canjearlos desde su panel si alcanzan el XP requerido.

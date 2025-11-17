@@ -1,7 +1,7 @@
 import os
 import secrets
 from PIL import Image
-from flask import current_app
+from flask import current_app, url_for
 
 
 ALLOWED_EXTS = {"jpg", "jpeg", "png"}
@@ -37,10 +37,15 @@ def process_and_save_image(file_storage):
 
     ext = _secure_ext(file_storage.filename or "")
     name = f"{secrets.token_hex(8)}.{ext}"
-    uploads_dir = current_app.config.get("UPLOADS_DIR", "./static/uploads")
+    uploads_dir = current_app.config.get("UPLOADS_DIR", "./uploads")
     os.makedirs(uploads_dir, exist_ok=True)
     path = os.path.join(uploads_dir, name)
     img.save(path, format="JPEG" if ext in {"jpg", "jpeg"} else "PNG", optimize=True, quality=85)
 
-    url = f"/static/uploads/{name}"
+    # URL pública servida por el blueprint de uploads
+    try:
+        url = url_for("uploads.serve_upload", filename=name)
+    except RuntimeError:
+        # En contextos sin petición (por ejemplo scripts) devolvemos ruta relativa
+        url = f"/uploads/{name}"
     return url, w, h

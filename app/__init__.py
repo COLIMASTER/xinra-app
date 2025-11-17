@@ -1,6 +1,6 @@
 import os
 from datetime import timedelta
-from flask import Flask
+from flask import Flask, render_template
 from dotenv import load_dotenv
 from .extensions import db, migrate, login_manager, csrf, limiter
 from sqlalchemy import inspect
@@ -13,7 +13,7 @@ def create_app():
 
     app.config.from_object(Config())
 
-    os.makedirs(app.config.get("UPLOADS_DIR", "./static/uploads"), exist_ok=True)
+    os.makedirs(app.config.get("UPLOADS_DIR", "./uploads"), exist_ok=True)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -25,15 +25,18 @@ def create_app():
     from .routes.auth import auth_bp
     from .routes.dashboard import dashboard_bp
     from .routes.health import health_bp
+    from .routes.uploads import uploads_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(health_bp)
+    app.register_blueprint(uploads_bp)
 
-    # Auto-create tables in development for SQLite if schema missing
+    # Auto-create tables only for local SQLite dev if schema missing
     try:
-        if str(app.config.get("SQLALCHEMY_DATABASE_URI", "")).startswith("sqlite:///"):
+        uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", "") or "")
+        if uri.startswith("sqlite:///") and app.config.get("ENV") != "production":
             with app.app_context():
                 insp = inspect(db.engine)
                 if not insp.has_table("restaurants"):
@@ -71,6 +74,14 @@ def create_app():
     def make_shell_context():
         from . import models
         return {"db": db, **{name: getattr(models, name) for name in dir(models) if name[0].isupper()}}
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def server_error(error):
+        return render_template("errors/500.html"), 500
 
     app.permanent_session_lifetime = timedelta(days=30)
 
