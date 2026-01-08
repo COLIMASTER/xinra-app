@@ -67,6 +67,7 @@ a{color:inherit}
   font-weight:600;
   color:var(--xinra-text);
   padding:0;
+  overflow:hidden;
 }
 .profile-bubble .bi{
   font-size:1.2rem;
@@ -74,6 +75,13 @@ a{color:inherit}
 }
 .profile-bubble::after{display:none}
 .profile-img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.avatar-modal-img{
+  width:100%;
+  max-width:320px;
+  max-height:60vh;
+  border-radius:18px;
+  object-fit:cover;
+}
 .dropdown-menu{
   border-radius:14px;
   border:1px solid var(--xinra-gray-200);

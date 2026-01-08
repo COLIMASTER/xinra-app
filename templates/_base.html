@@ -12,6 +12,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
+  {% set avatar_url = None %}
+  {% set avatar_upload_url = '' %}
+  {% if current_user.is_authenticated %}
+    {% set avatar_url = current_user.avatar_url %}
+    {% if not avatar_url and current_user.staff and current_user.staff.avatar_url %}
+      {% set avatar_url = current_user.staff.avatar_url %}
+    {% endif %}
+    {% if avatar_url and 'placehold.co/96x96' in avatar_url %}
+      {% set avatar_url = avatar_url|replace('placehold.co/96x96', 'placehold.co/600x600') %}
+    {% endif %}
+    {% set avatar_upload_url = (url_for('dashboard.staff_avatar_update') if has_staff() else url_for('dashboard.update_profile_avatar')) %}
+  {% endif %}
   {% if not hide_nav %}
   <nav class="xinra-nav">
     <div class="container-xxl nav-inner">
@@ -21,10 +33,8 @@
       <div class="dropdown">
         <button class="profile-bubble dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           {% if current_user.is_authenticated %}
-            {% if current_user.avatar_url %}
-              <img src="{{ current_user.avatar_url }}" alt="Profile" class="profile-img">
-            {% elif current_user.staff and current_user.staff.avatar_url %}
-              <img src="{{ current_user.staff.avatar_url }}" alt="Profile" class="profile-img">
+            {% if avatar_url %}
+              <img src="{{ avatar_url }}" alt="Profile" class="profile-img">
             {% else %}
               <span>{{ (current_user.name or 'U')[:1].upper() }}</span>
             {% endif %}
@@ -33,6 +43,17 @@
         {% endif %}
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
+          {% if current_user.is_authenticated %}
+            <li>
+              <button class="dropdown-item" type="button" {% if avatar_url %}data-bs-toggle="modal" data-bs-target="#avatarModal"{% else %}disabled{% endif %}>
+                View photo
+              </button>
+            </li>
+            <li>
+              <button class="dropdown-item" type="button" data-avatar-upload>Change photo</button>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+          {% endif %}
           <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">Rewards & Recognition</a></li>
           {% if current_user.is_authenticated and has_staff() %}
             <li><a class="dropdown-item" href="{{ url_for('dashboard.my_staff_panel') }}">Staff dashboard</a></li>
@@ -79,6 +100,26 @@
       {% block content %}{% endblock %}
     </div>
   </main>
+
+  {% if current_user.is_authenticated %}
+    <form id="avatarUploadForm" method="post" action="{{ avatar_upload_url }}" enctype="multipart/form-data" class="d-none">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="file" id="avatarUploadInput" name="avatar" accept="image/png,image/jpeg">
+    </form>
+    <div class="modal fade" id="avatarModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body text-center">
+            {% if avatar_url %}
+              <img src="{{ avatar_url }}" alt="Profile photo" class="avatar-modal-img">
+            {% else %}
+              <div class="text-muted">No photo yet.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/app.js"></script>

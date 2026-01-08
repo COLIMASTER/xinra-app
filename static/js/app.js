@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.remove('theme-dark');
   initChartsDefaults();
   animateCards();
+  initAvatarMenu();
 
   document.body.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn');
@@ -163,6 +164,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initAdminCharts();
 });
+
+function initAvatarMenu(){
+  const form = document.getElementById('avatarUploadForm');
+  const input = document.getElementById('avatarUploadInput');
+  const triggers = document.querySelectorAll('[data-avatar-upload]');
+  if (!form || !input || !triggers.length) return;
+  triggers.forEach(btn => {
+    btn.addEventListener('click', () => input.click());
+  });
+  input.addEventListener('change', () => {
+    if (input.files && input.files.length){
+      form.submit();
+    }
+  });
+}
 
 // Admin dashboard live charts
 function initAdminCharts(){
