@@ -16,7 +16,13 @@ def create_review(restaurant_id: int, staff: Staff | None, user: User | None, ra
         photo_saved = True
 
     if user:
-        gained = (5 if (comment and comment.strip()) else 0) + (5 if photo_saved else 0)
+        gained = 0
+        if int(rating or 0) >= 4:
+            gained += 5
+        if comment and comment.strip():
+            gained += 5
+        if photo_saved:
+            gained += 5
         if gained:
             add_xp(user, gained)
 

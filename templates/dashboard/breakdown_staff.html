@@ -1,0 +1,80 @@
+{% extends "_base.html" %}
+{% block title %}Tip Breakdown{% endblock %}
+{% block content %}
+<div class="xinra-shell">
+  <div class="section-title" style="margin-bottom:6px;">Tip Breakdown</div>
+  <div class="section-subtitle">Your recent earnings and feedback.</div>
+
+  <div class="card p-3 mt-3">
+    <div class="fw-semibold mb-2">Summary</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="text-muted">Pooled this week</div>
+        <div class="kpi-value">${{ '%.2f' % (pooled_week/100) }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="text-muted">Direct tips to you</div>
+        <div class="kpi-value">${{ '%.2f' % (direct_week/100) }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="text-muted">Reviews - avg rating</div>
+        <div class="kpi-value">{{ '%.1f' % rating_avg_week }} <i class="bi bi-star-fill" style="color:var(--xinra-orange);"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-3 mt-3">
+    <div class="fw-semibold mb-2">Earnings List</div>
+    <div class="d-grid gap-2">
+      {% for row in earnings_list %}
+        <div class="card card-white p-3 d-flex align-items-center justify-content-between">
+          <div>
+            <div class="fw-semibold">{{ row.staff.name }}</div>
+            <div class="text-muted small">
+              {% set full = row.rating_avg|round(0, 'floor')|int %}
+              {% for i in range(1,6) %}
+                {% if i <= full %}
+                  <i class="bi bi-star-fill" style="color:var(--xinra-orange);"></i>
+                {% else %}
+                  <i class="bi bi-star" style="color:var(--xinra-gray-300);"></i>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <div class="text-muted small">{{ today_label }}</div>
+          </div>
+          <div class="fw-semibold">${{ '%.2f' % (row.tips_total/100) }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-3 mt-3">
+    <div class="fw-semibold mb-2">Recent feedback</div>
+    {% if recent_feedback %}
+      <div class="d-grid gap-2">
+        {% for rv in recent_feedback %}
+          <div class="card card-white p-3">
+            <div class="d-flex justify-content-between">
+              <div>
+                {% for i in range(1,6) %}
+                  {% if i <= rv.rating %}
+                    <i class="bi bi-star-fill" style="color:var(--xinra-orange);"></i>
+                  {% else %}
+                    <i class="bi bi-star" style="color:var(--xinra-gray-300);"></i>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              <div class="text-muted small">{{ rv.created_at.strftime('%Y-%m-%d') }}</div>
+            </div>
+            {% if rv.comment %}<div class="text-muted mt-2">{{ rv.comment }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-muted">No feedback yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="text-muted mt-3 text-center">{{ message }}</div>
+</div>
+{% endblock %}

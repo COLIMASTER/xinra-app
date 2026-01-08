@@ -53,7 +53,7 @@ def create_app():
     def inject_permissions():
         try:
             from flask_login import current_user
-            from .models import Membership
+            from .models import Membership, Staff
         except Exception:
             # In case of import timing issues during app init
             return {}
@@ -68,7 +68,24 @@ def create_app():
                 is not None
             )
 
-        return {"has_admin": has_admin}
+        def has_staff():
+            if not current_user.is_authenticated:
+                return False
+            staff = (
+                Staff.query
+                .filter(Staff.user_id == current_user.id, Staff.active.is_(True))
+                .first()
+            )
+            if staff:
+                return True
+            return (
+                Membership.query
+                .filter(Membership.user_id == current_user.id, Membership.role == "staff")
+                .first()
+                is not None
+            )
+
+        return {"has_admin": has_admin, "has_staff": has_staff}
 
     @app.shell_context_processor
     def make_shell_context():

@@ -50,9 +50,12 @@ class Staff(db.Model):
     rating_avg = db.Column(db.Float, default=0.0, nullable=False)
     tips_count = db.Column(db.Integer, default=0, nullable=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    login_initial_password = db.Column(db.String(64), nullable=True)
 
     tips = db.relationship("Tip", backref="staff", lazy=True)
     reviews = db.relationship("Review", backref="staff", lazy=True)
+    user = db.relationship("User", backref=db.backref("staff", uselist=False))
 
 
 class Membership(db.Model):

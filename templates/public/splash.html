@@ -1,0 +1,12 @@
+{% extends "_base.html" %}
+{% set hide_nav = true %}
+{% block title %}Welcome - XINRA{% endblock %}
+{% block content %}
+<div class="xinra-shell text-center">
+  <div class="card card-white p-4">
+    <img src="/static/logos/Xinra_logo_color.svg" alt="XINRA" style="max-width:220px;margin:0 auto 16px;display:block;">
+    <div class="section-subtitle mb-4">Digital tipping, feedback, and recognition in one place.</div>
+    <a class="btn btn-primary btn-lg" href="{{ url_for('public.tip_page', restaurant_slug=restaurant.slug) }}">Get Started</a>
+  </div>
+</div>
+{% endblock %}

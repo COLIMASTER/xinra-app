@@ -5,6 +5,7 @@ from ..models import Restaurant, Staff, Tip, Review
 from ..forms import TipForm, ReviewForm
 from ..services.tip_service import create_tip
 from ..services.review_service import create_review
+from ..services.reward_service import get_tier_progress
 from ..utils import device as device_util
 
 
@@ -16,7 +17,7 @@ def home():
     # Redirect to the first available restaurant, or show a quick help message
     r = Restaurant.query.order_by(Restaurant.id.asc()).first()
     if r:
-        return redirect(url_for("public.tip_page", restaurant_slug=r.slug))
+        return render_template("public/splash.html", restaurant=r)
     return (
         "No restaurants configured. Run: python -m app.seed",
         200,
@@ -81,25 +82,20 @@ def thanks_page(restaurant_slug):
     tip_id = request.args.get("tip", type=int)
     tip = Tip.query.filter_by(id=tip_id, restaurant_id=restaurant.id).first() if tip_id else None
     staff = Staff.query.get(tip.staff_id) if tip and tip.staff_id else None
-    last_review = Review.query.filter_by(restaurant_id=restaurant.id, user_id=(current_user.id if current_user.is_authenticated else None)).order_by(Review.created_at.desc()).first()
     user = current_user if current_user.is_authenticated else None
-    from ..models import RewardTier
-    tiers = RewardTier.query.order_by(RewardTier.threshold_xp.asc()).all()
-    xp = user.xp if user else 0
+    current_tier = None
     next_tier = None
-    for t in tiers:
-        if xp < t.threshold_xp:
-            next_tier = t
-            break
-    current_level = user.level if user else 1
-    progress_pct = 100
-    if next_tier:
-        prev_thresh = 0
-        for t in tiers:
-            if (user.xp if user else 0) >= t.threshold_xp:
-                prev_thresh = t.threshold_xp
-            else:
-                break
-        span = max(1, next_tier.threshold_xp - prev_thresh)
-        progress_pct = int(100 * ((xp - prev_thresh) / span))
-    return render_template("public/thanks.html", restaurant=restaurant, staff=staff, tip=tip, user=user, current_level=current_level, next_tier=next_tier, progress_pct=progress_pct)
+    progress_pct = 0
+    if user:
+        _, current_tier, next_tier, progress_pct = get_tier_progress(user)
+    return render_template(
+        "public/thanks.html",
+        restaurant=restaurant,
+        staff=staff,
+        tip=tip,
+        user=user,
+        current_tier=current_tier,
+        next_tier=next_tier,
+        progress_pct=progress_pct,
+        claim_next=url_for("auth.merge_guest_auto"),
+    )

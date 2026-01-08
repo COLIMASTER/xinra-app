@@ -1,213 +1,72 @@
 {% extends "_base.html" %}
-{% block title %}Profile{% endblock %}
+{% block title %}Rewards & Recognition{% endblock %}
 {% block content %}
-<div class="card p-4 shadow-sm mb-3 profile-hero">
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-    <div class="d-flex align-items-center gap-3">
-      <div class="avatar-fallback avatar-lg">{{ (user.name or 'U')[:1].upper() }}</div>
-      <div>
-        <h4 class="mb-1">{{ user.name or 'User' }}</h4>
-        <div class="small text-muted">{{ user.email or 'Guest' }}</div>
-      </div>
-    </div>
-    <div class="d-flex align-items-center gap-4">
-      <div class="xp-ring" data-progress="{{ progress_pct }}">
-        <div class="text-center">
-          <div class="label">{{ progress_pct }}%</div>
-          <div class="sub">Level {{ user.level }}</div>
-        </div>
-      </div>
-      <div>
-        <div class="small text-muted">XP: {{ user.xp }}</div>
-        {% if next_tier %}
-          <div class="small text-muted">Next: {{ next_tier.name }} ({{ next_tier.threshold_xp }} XP)</div>
-        {% else %}
-          <div class="small text-muted">Max level reached</div>
-        {% endif %}
-        <form class="mt-2" method="post" action="{{ url_for('auth.merge_guest') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline-dark btn-sm" type="submit">Merge anonymous</button>
-        </form>
+{% if is_guest %}
+  <div class="xinra-shell">
+    <div class="card card-white p-4 text-center">
+      <div class="dashboard-title">Rewards & Recognition</div>
+      <div class="section-subtitle mt-2">Sign in to see your levels, XP, and rewards.</div>
+      <div class="d-grid gap-2 mt-4">
+        <a class="btn btn-primary" href="{{ url_for('auth.login', next=url_for('auth.profile')) }}">Sign in</a>
+        <a class="btn btn-outline-orange" href="{{ url_for('auth.register', next=url_for('auth.profile')) }}">Create account</a>
       </div>
     </div>
   </div>
-  {% if restaurants %}
-  <div class="mt-3">
-    <div class="small text-muted mb-2">Visited restaurants</div>
-    <div class="d-flex flex-wrap gap-2">
-      {% for r in restaurants %}
-        <a class="resto-tile" href="{{ url_for('public.tip_page', restaurant_slug=r.slug) }}">
-          {% if r.logo_url %}
-            <img class="resto-logo" src="{{ r.logo_url }}" alt="{{ r.name }}">
-          {% else %}
-            <div class="resto-logo d-flex align-items-center justify-content-center">🍽️</div>
-          {% endif %}
-          <span>{{ r.name }}</span>
-        </a>
-      {% endfor %}
+{% else %}
+  {% set tier_name = current_tier.name if current_tier else 'Wood' %}
+  <div class="xinra-shell">
+    <div class="mb-3">
+      <div class="dashboard-title">Rewards & Recognition</div>
+      <div class="section-subtitle">Track your growth and celebrate your wins.</div>
     </div>
-  </div>
-  {% endif %}
-</div>
 
-<div class="row g-3 mb-3">
-  <div class="col-12 col-lg-6">
-    <div class="card p-3 mission-card h-100">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="mb-0">Weekly mission</h5>
-        {% if mission.completed %}
-          <span class="badge text-bg-success">Completed</span>
-        {% endif %}
-      </div>
-      <div class="small text-muted mb-2">{{ mission.title }}</div>
-      <div class="mission-progress mb-2">
-        {% set pct = (100 * mission.progress // mission.goal) if mission.goal else 0 %}
-        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ mission.goal }}" aria-valuenow="{{ mission.progress }}">
-          <div class="progress-bar" style="width: {{ pct }}%"></div>
-        </div>
-      </div>
-      <div class="small text-muted">Progress: {{ mission.progress }}/{{ mission.goal }} · Since {{ mission.start.strftime('%Y-%m-%d') }}</div>
-    </div>
-  </div>
-  <div class="col-12 col-lg-6">
-    <div class="card p-3 h-100">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Achievements</h5>
-        <a href="{{ url_for('auth.summary') }}" class="btn btn-outline-dark btn-sm">Your year in cafés</a>
-      </div>
-      <div class="d-flex flex-wrap gap-2 mt-2">
-        {% for a in achievements %}
-          <div class="badge-achievement {{ 'earned' if a.earned else 'locked' }}" title="{{ a.desc }}">
-            <i class="bi {{ 'bi-trophy-fill' if a.earned else 'bi-trophy' }} me-1"></i>{{ a.name }}
-          </div>
-        {% endfor %}
-      </div>
-      <div class="small text-muted mt-2">Hover to see the requirement.</div>
-    </div>
-  </div>
-  
-</div>
-
-<div class="row g-3">
-  <div class="col-12 col-lg-6">
-    <div class="card p-3 shadow-sm h-100">
-      <h5 class="mb-2">Tip history</h5>
-      {% if tips %}
-      <ul class="timeline">
-        {% for t in tips %}
-        <li>
-          <div class="dot"></div>
-          <div class="flex-grow-1">
-            <div class="d-flex justify-content-between">
-              <span class="title">{{ t.restaurant.name }} · {{ t.staff.name if t.staff_id else 'General' }}</span>
-              <span class="fw-bold amount">€{{ '%.2f' % (t.amount_cents/100) }}</span>
-            </div>
-            <div class="small text-muted">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
+    <div class="card tier-card p-4 mb-3">
+      <div class="h4">You're a {{ tier_name }} Tier!</div>
+      {% if next_tier %}
+        <div class="muted">Next level: {{ next_tier.name }}</div>
+        <div class="muted">Earn {{ reviews_needed }} more positive reviews this month.</div>
       {% else %}
-      <div class="text-muted">No tips yet.</div>
+        <div class="muted">You are at the top tier.</div>
       {% endif %}
     </div>
-  </div>
-  <div class="col-12 col-lg-6">
-    <div class="card p-3 shadow-sm h-100">
-      <h5 class="mb-2">Review history</h5>
-      {% if reviews %}
-      <ul class="timeline">
-        {% for r in reviews %}
-        <li>
-          <div class="dot"></div>
-          <div class="flex-grow-1">
-            <div class="d-flex justify-content-between">
-              <span class="title">{{ r.restaurant.name }} · {{ r.staff.name if r.staff_id else 'General' }}</span>
-              <span>
-                {% for i in range(1,6) %}
-                  {% if i <= r.rating %}
-                    <i class="bi bi-star-fill text-warning"></i>
-                  {% else %}
-                    <i class="bi bi-star text-warning"></i>
-                  {% endif %}
-                {% endfor %}
-              </span>
+
+    <div class="card p-3 mb-3">
+      <div class="section-title" style="margin-top:0;">Your current Rewards</div>
+      {% if current_rewards %}
+        <div class="d-grid gap-3">
+          {% for reward in current_rewards %}
+            <div class="card card-white p-3 reward-card">
+              <div class="fw-semibold">{{ reward.title }}</div>
+              {% if expiry_by_id.get(reward.id) %}
+                <div class="reward-meta">Redeem before {{ expiry_by_id[reward.id] }}</div>
+              {% endif %}
+              <form method="post" action="{{ url_for('auth.claim_coupon', coupon_id=reward.id) }}" class="mt-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary w-100" type="submit">Claim reward</button>
+              </form>
             </div>
-            {% if r.comment %}<div class="small text-muted mt-1">{{ r.comment }}</div>{% endif %}
-            <div class="small text-muted">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
+          {% endfor %}
+        </div>
       {% else %}
-      <div class="text-muted">No reviews yet.</div>
+        <div class="text-muted">No rewards unlocked yet.</div>
+      {% endif %}
+    </div>
+
+    <div class="card p-3">
+      <div class="section-title" style="margin-top:0;">Upcoming rewards</div>
+      {% if upcoming_rewards %}
+        <div class="d-grid gap-3">
+          {% for reward in upcoming_rewards %}
+            <div class="card card-white p-3 reward-card">
+              <div class="fw-semibold">{{ reward.title }}</div>
+              <div class="reward-meta">Unlock at {{ reward.required_xp }} XP</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted">No upcoming rewards.</div>
       {% endif %}
     </div>
   </div>
-
-  <div class="col-12">
-    <div class="card p-3 shadow-sm h-100">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-2">Coupons</h5>
-        <small class="text-muted">Claim only if you want</small>
-      </div>
-
-      {% set any_available = available_by_rest and available_by_rest|length > 0 %}
-      {% set any_claimed = claimed_by_rest and claimed_by_rest|length > 0 %}
-
-      {% if any_available %}
-        <div class="small text-muted">Available to claim</div>
-        {% for rest_id, pack in available_by_rest.items() %}
-          {% set rest = pack.restaurant %}
-          {% set coupons = pack.coupons %}
-          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurant' }}</div>
-          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            {% for c in coupons %}
-            <div class="col">
-              <div class="card p-3 h-100 coupon-card">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <div class="fw-bold">{{ c.title }}</div>
-                    {% if c.description %}<div class="small mt-1 text-muted">{{ c.description }}</div>{% endif %}
-                  </div>
-                  <span class="badge-xp">{{ c.required_xp }} XP</span>
-                </div>
-                <form method="post" action="{{ url_for('auth.claim_coupon', coupon_id=c.id) }}" class="mt-3">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm coupon-claim-btn" type="submit">Claim</button>
-                </form>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        {% endfor %}
-      {% endif %}
-
-      {% if any_claimed %}
-        <div class="small text-muted mt-4">Claimed</div>
-        {% for rest_id, pack in claimed_by_rest.items() %}
-          {% set rest = pack.restaurant %}
-          {% set reds = pack.redemptions %}
-          <div class="mb-2 mt-2 fw-semibold">{{ rest.name if rest else 'Restaurant' }}</div>
-          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            {% for cr in reds %}
-            <div class="col">
-              <div class="card p-3 h-100 coupon-card">
-                <div class="fw-bold">{{ cr.coupon.title if cr.coupon else 'Coupon' }}</div>
-                {% if cr.coupon and cr.coupon.description %}<div class="small mt-1 text-muted">{{ cr.coupon.description }}</div>{% endif %}
-                <div class="mt-2 code-badge">Code: {{ cr.code }}</div>
-                <div class="small text-muted mt-1">Status: {{ cr.status }}</div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        {% endfor %}
-      {% endif %}
-
-      {% if not any_available and not any_claimed %}
-        <div class="text-muted">You have no coupons yet. Send a tip to unlock and claim when you want.</div>
-      {% endif %}
-    </div>
-  </div>
-</div>
+{% endif %}
 {% endblock %}

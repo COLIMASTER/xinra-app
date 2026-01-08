@@ -1,13 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required, logout_user
 from datetime import datetime, timedelta
+from math import ceil
 
 from ..forms import LoginForm, RegisterForm
 from ..services.auth_service import authenticate, register_user
 from ..services.merge_service import merge_guest_into_user
 from ..utils import device as device_util
 from ..extensions import db
-from ..models import User, Restaurant, Tip, Review, RewardTier, Coupon, CouponRedemption, Staff
+from ..models import User, Restaurant, Tip, Review, Coupon, CouponRedemption, Staff, Membership
+from ..services.reward_service import get_tier_progress
 
 
 auth_bp = Blueprint("auth", __name__)
@@ -18,9 +20,19 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         try:
-            authenticate(form.email.data, form.password.data)
+            user = authenticate(form.email.data, form.password.data)
             flash("Welcome", "success")
-            next_url = request.args.get("next") or url_for("auth.profile")
+            next_url = request.form.get("next") or request.args.get("next")
+            if not next_url:
+                staff = Staff.query.filter_by(user_id=user.id, active=True).first()
+                if staff:
+                    next_url = url_for("dashboard.my_staff_panel")
+                else:
+                    staff_membership = Membership.query.filter_by(user_id=user.id, role="staff").first()
+                    if staff_membership:
+                        next_url = url_for("dashboard.my_staff_panel")
+                    else:
+                        next_url = url_for("auth.profile")
             return redirect(next_url)
         except ValueError as e:
             flash(str(e), "danger")
@@ -34,7 +46,8 @@ def register():
         try:
             register_user(form.email.data, form.password.data, form.name.data)
             flash("Account created", "success")
-            return redirect(url_for("auth.profile"))
+            next_url = request.form.get("next") or request.args.get("next")
+            return redirect(next_url or url_for("auth.profile"))
         except ValueError as e:
             flash(str(e), "danger")
     return render_template("auth/register.html", form=form)
@@ -50,8 +63,10 @@ def logout():
 
 @auth_bp.route("/me/profile")
 def profile():
-    # Usa usuario autenticado o crea/recupera invitado por cookie de dispositivo
-    user = current_user if current_user.is_authenticated else device_util.get_or_create_guest_user()
+    if not current_user.is_authenticated:
+        return render_template("auth/profile.html", is_guest=True)
+
+    user = current_user
 
     tips = (
         Tip.query.filter_by(user_id=user.id).order_by(Tip.created_at.desc()).limit(20).all()
@@ -60,9 +75,6 @@ def profile():
         Review.query.filter_by(user_id=user.id).order_by(Review.created_at.desc()).limit(20).all()
     )
     # Datos completos para logros y misión
-    all_tips = Tip.query.filter_by(user_id=user.id).all()
-    all_reviews = Review.query.filter_by(user_id=user.id).all()
-
     restaurant_ids = {t.restaurant_id for t in tips} | {r.restaurant_id for r in reviews}
     restaurants = (
         Restaurant.query.filter(Restaurant.id.in_(restaurant_ids)).order_by(Restaurant.name.asc()).all()
@@ -70,64 +82,50 @@ def profile():
         else []
     )
 
-    # Calcular siguiente nivel y progreso (si hay RewardTiers)
-    tiers = RewardTier.query.order_by(RewardTier.threshold_xp.asc()).all()
+    tiers, current_tier, next_tier, progress_pct = get_tier_progress(user)
     xp = user.xp or 0
-    next_tier = None
-    progress_pct = 100
-    if tiers:
-        prev_thresh = 0
-        for t in tiers:
-            if xp >= t.threshold_xp:
-                prev_thresh = t.threshold_xp
-            else:
-                next_tier = t
-                break
-        if next_tier:
-            span = max(1, next_tier.threshold_xp - prev_thresh)
-            progress_pct = int(100 * ((xp - prev_thresh) / span))
+    reviews_needed = 0
+    if next_tier:
+        gap = max(0, int(next_tier.threshold_xp or 0) - int(xp))
+        reviews_needed = max(1, ceil(gap / 5)) if gap else 0
 
-    # Cupones: disponibles para reclamar (no reclamados) y reclamados
-    available_by_rest = {}
-    claimed_by_rest = {}
+    # Rewards: available to claim vs upcoming (exclude already claimed)
+    claimed_ids = set()
     if restaurants:
-        # Redenciones del usuario
         redemptions = CouponRedemption.query.filter_by(user_id=user.id).all()
         claimed_ids = {cr.coupon_id for cr in redemptions}
-        by_rest_claimed = {}
-        for cr in redemptions:
-            if not cr.coupon:
-                continue
-            lst = by_rest_claimed.setdefault(cr.coupon.restaurant_id, [])
-            lst.append(cr)
 
-        for r in restaurants:
-            # disponibles con requisito XP cumplido y activos, excluyendo ya reclamados
-            q = (
-                Coupon.query.filter_by(restaurant_id=r.id, active=True)
-                .filter(Coupon.required_xp <= xp)
-            )
-            if claimed_ids:
-                q = q.filter(~Coupon.id.in_(claimed_ids))
-            available = q.order_by(Coupon.required_xp.asc()).all()
-            if available:
-                available_by_rest[r.id] = {"restaurant": r, "coupons": available}
-            claimed_list = by_rest_claimed.get(r.id)
-            if claimed_list:
-                claimed_by_rest[r.id] = {"restaurant": r, "redemptions": claimed_list}
+    reward_ids = [r.id for r in restaurants] if restaurants else []
+    rewards_q = Coupon.query.filter_by(active=True)
+    if reward_ids:
+        rewards_q = rewards_q.filter(Coupon.restaurant_id.in_(reward_ids))
+    rewards = rewards_q.order_by(Coupon.required_xp.asc()).all()
+
+    current_rewards = [c for c in rewards if c.required_xp <= xp and c.id not in claimed_ids]
+    upcoming_rewards = [c for c in rewards if c.required_xp > xp]
+
+    expiry_by_id = {}
+    now = datetime.utcnow()
+    if rewards:
+        next_month = datetime(now.year + (1 if now.month == 12 else 0), (now.month % 12) + 1, 1)
+        month_end = next_month - timedelta(days=1)
+        for c in rewards:
+            expiry_by_id[c.id] = c.expires_at.strftime("%Y-%m-%d") if c.expires_at else month_end.strftime("%Y-%m-%d")
 
     return render_template(
         "auth/profile.html",
+        is_guest=False,
         user=user,
         restaurants=restaurants,
         tips=tips,
         reviews=reviews,
+        current_tier=current_tier,
         next_tier=next_tier,
         progress_pct=progress_pct,
-        available_by_rest=available_by_rest,
-        claimed_by_rest=claimed_by_rest,
-        achievements=_compute_achievements(user, all_tips, all_reviews),
-        mission=_compute_weekly_mission(user),
+        current_rewards=current_rewards,
+        upcoming_rewards=upcoming_rewards,
+        expiry_by_id=expiry_by_id,
+        reviews_needed=reviews_needed,
     )
 
 
@@ -281,4 +279,18 @@ def merge_guest():
         return redirect(url_for("auth.profile"))
     merge_guest_into_user(guest, current_user)
     flash("Anonymous profile merged", "success")
+    return redirect(url_for("auth.profile"))
+
+
+@auth_bp.route("/me/merge-guest/auto")
+@login_required
+def merge_guest_auto():
+    did = device_util.get_device_id()
+    if not did:
+        return redirect(url_for("auth.profile"))
+    dh = device_util.device_hash(did)
+    guest = User.query.filter_by(device_id_hash=dh).first()
+    if guest and guest.id != current_user.id:
+        merge_guest_into_user(guest, current_user)
+        flash("Points added to your account", "success")
     return redirect(url_for("auth.profile"))

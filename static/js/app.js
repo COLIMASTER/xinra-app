@@ -143,16 +143,10 @@ function initThemeToggle(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Apply saved theme first
-  initThemeToggle();
-  // Color palette controls removed from UI
+  document.body.classList.remove('theme-dark');
   initChartsDefaults();
   animateCards();
-  initXpRing();
-  const fab = null;
-  const panel = null;
 
-  // Button ripple
   document.body.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn');
     if (!btn) return;
@@ -166,51 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.appendChild(circle);
     setTimeout(() => circle.remove(), 600);
   });
-  // Draggable FAB
-  if (fab){
-    const savedPos = JSON.parse(localStorage.getItem('theme.fab.pos') || 'null');
-    if (savedPos){
-      fab.style.left = savedPos.x + 'px';
-      fab.style.top = savedPos.y + 'px';
-      fab.style.right = 'auto'; fab.style.bottom = 'auto';
-    }
-    let dragging = false, offsetX = 0, offsetY = 0;
-    const onDown = (ev) => {
-      dragging = true;
-      const e = ev.touches ? ev.touches[0] : ev;
-      const rect = fab.getBoundingClientRect();
-      offsetX = e.clientX - rect.left;
-      offsetY = e.clientY - rect.top;
-      ev.preventDefault();
-    };
-    const onMove = (ev) => {
-      if (!dragging) return;
-      const e = ev.touches ? ev.touches[0] : ev;
-      let x = e.clientX - offsetX;
-      let y = e.clientY - offsetY;
-      const vw = window.innerWidth, vh = window.innerHeight;
-      const w = fab.offsetWidth, h = fab.offsetHeight;
-      x = Math.max(8, Math.min(vw - w - 8, x));
-      y = Math.max(8, Math.min(vh - h - 8, y));
-      fab.style.left = x + 'px';
-      fab.style.top = y + 'px';
-      fab.style.right = 'auto'; fab.style.bottom = 'auto';
-    };
-    const onUp = () => {
-      if (!dragging) return;
-      dragging = false;
-      const rect = fab.getBoundingClientRect();
-      localStorage.setItem('theme.fab.pos', JSON.stringify({x: rect.left, y: rect.top}));
-    };
-    fab.addEventListener('mousedown', onDown);
-    fab.addEventListener('touchstart', onDown, {passive:false});
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('touchmove', onMove, {passive:false});
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchend', onUp);
-  }
 
-  // Admin charts auto-refresh
   initAdminCharts();
 });
 

@@ -1,54 +1,108 @@
 {% extends "_base.html" %}
 {% block title %}Feedback - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<div class="mb-3 text-center">
-  <h4>Your experience at {{ restaurant.name }}</h4>
-  {% if staff %}<div class="text-muted">For {{ staff.name }}</div>{% endif %}
-  {% if tip %}<div class="small text-muted">Tip #{{ tip.id }} — ${{ '%.2f' % (tip.amount_cents/100) }}</div>{% endif %}
-</div>
+<div class="xinra-shell">
+  <div class="page-title">Add feedback and photo</div>
+  <div class="page-subtitle mb-3">Your feedback helps our team improve and supports other guests.</div>
 
-<form method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
-  {{ form.hidden_tag() }}
+  <form method="post" enctype="multipart/form-data" class="card p-3">
+    {{ form.hidden_tag() }}
 
-  <div class="mb-3 text-center">
-    {% with target='rating', value=form.rating.data %}
-      {% include "_stars.html" %}
-    {% endwith %}
-  </div>
-
-  <div class="mb-3">
-    {{ form.comment.label(class="form-label") }}
-    {{ form.comment(class="form-control", placeholder="Tell us more (optional)") }}
-  </div>
-
-  <div class="mb-3">
-    <label class="form-label">Photo (optional)</label>
-    <div class="input-group">
-      {{ form.photo(class="form-control", id="photo-input") }}
+    <div class="section-title">Rate your experience</div>
+    <div class="mb-3">
+      {% with target='rating', value=form.rating.data %}
+        {% include "_stars.html" %}
+      {% endwith %}
     </div>
+
+    <div class="section-title">Add a quick note (optional)</div>
+    {{ form.comment(class="form-control", id="comment", rows="4", placeholder="Share a quick thanks", maxlength="300") }}
+    <div class="char-count" id="char-count">0/300</div>
+
+    <div class="section-title">Upload a Photo</div>
+    <label class="upload-box" id="upload-box">
+      {{ form.photo(class="d-none", id="photo-input") }}
+      <div class="upload-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 16V6" stroke="#f27a2d" stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 10L12 6L16 10" stroke="#f27a2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 16.5V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V16.5" stroke="#f27a2d" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>Drag & Drop your photo or <span class="upload-link">browse</span></div>
+      <div class="small text-muted" id="upload-name"></div>
+    </label>
     <img id="photo-preview" class="img-fluid mt-2 d-none" alt="preview" />
-  </div>
 
-  <div class="form-check form-switch mb-3">
-    {{ form.share_allowed(class="form-check-input", id="share") }}
-    <label class="form-check-label" for="share">Allow sharing my feedback</label>
-  </div>
+    <div class="d-flex align-items-center justify-content-between mt-3">
+      <div class="text-muted">Allow venue to share this photo on instagram</div>
+      <label class="switch">
+        {{ form.share_allowed(id="share") }}
+        <span class="switch-slider"></span>
+      </label>
+    </div>
 
-  <div class="d-grid">{{ form.submit(class="btn btn-success btn-lg") }}</div>
-</form>
+    <div class="d-grid mt-4">
+      <button class="btn btn-primary btn-lg" type="submit">Submit Feedback</button>
+    </div>
+  </form>
+</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     window.initStars && window.initStars();
+    const comment = document.getElementById('comment');
+    const count = document.getElementById('char-count');
     const file = document.getElementById('photo-input');
-    const prev = document.getElementById('photo-preview');
-    file && file.addEventListener('change', () => {
-      const f = file.files[0];
-      if (!f) { prev.classList.add('d-none'); return; }
+    const preview = document.getElementById('photo-preview');
+    const uploadBox = document.getElementById('upload-box');
+    const uploadName = document.getElementById('upload-name');
+
+    const updateCount = () => {
+      const len = comment.value.length;
+      count.textContent = `${len}/300`;
+    };
+    if (comment) {
+      comment.addEventListener('input', updateCount);
+      updateCount();
+    }
+
+    const handleFile = (f) => {
+      if (!f) {
+        preview.classList.add('d-none');
+        uploadName.textContent = '';
+        return;
+      }
+      uploadName.textContent = f.name;
       const url = URL.createObjectURL(f);
-      prev.src = url;
-      prev.classList.remove('d-none');
-    })
+      preview.src = url;
+      preview.classList.remove('d-none');
+    };
+
+    file && file.addEventListener('change', () => handleFile(file.files[0]));
+
+    if (uploadBox) {
+      ['dragenter','dragover'].forEach(evt => {
+        uploadBox.addEventListener(evt, (e) => {
+          e.preventDefault();
+          uploadBox.classList.add('dragover');
+        });
+      });
+      ['dragleave','drop'].forEach(evt => {
+        uploadBox.addEventListener(evt, (e) => {
+          e.preventDefault();
+          uploadBox.classList.remove('dragover');
+        });
+      });
+      uploadBox.addEventListener('drop', (e) => {
+        const dropped = e.dataTransfer.files[0];
+        if (!dropped) return;
+        const dt = new DataTransfer();
+        dt.items.add(dropped);
+        file.files = dt.files;
+        handleFile(dropped);
+      });
+    }
   });
 </script>
 {% endblock %}

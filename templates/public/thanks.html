@@ -1,29 +1,51 @@
 {% extends "_base.html" %}
-{% block title %}Thanks! - {{ restaurant.name }}{% endblock %}
+{% block title %}Thanks - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<div class="text-center">
-  <div class="display-6">Thanks for your support!</div>
-  {% if staff %}<div class="lead mt-1">You supported {{ staff.name }}</div>{% endif %}
-  {% if user %}
-  <div class="mt-4">
-    <div class="h5">You are Supporter Level {{ current_level }}!</div>
-    {% if next_tier %}
-      <div class="small text-muted">Progress to next level ({{ next_tier.name }} - {{ next_tier.threshold_xp }} XP)</div>
-      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <div class="progress-bar" style="width: {{ progress_pct }}%"></div>
+{% set guest_name = (user.name or 'Guest') if user else 'Guest' %}
+{% set staff_name = staff.name if staff else 'the team' %}
+{% set tier_name = current_tier.name if current_tier else 'Wood' %}
+{% set ig_handle = restaurant.slug.replace('-', '') %}
+<div class="xinra-shell text-center">
+  <div class="success-mark">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="30" stroke="#1f9d55" stroke-width="4"/>
+      <path d="M18 33.5L28 43.5L46 22" stroke="#1f9d55" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="thanks-title">Thanks {{ guest_name }}</div>
+  <div class="thanks-subtitle">Your tip went directly to {{ staff_name }}</div>
+  <div class="section-subtitle mt-2">Your review helps {{ restaurant.name }} grow!</div>
+
+  {% if current_user.is_authenticated %}
+    <div class="card p-3 mt-4">
+      <div class="d-flex align-items-center justify-content-center gap-3">
+        <div class="reward-medal">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="10" r="6" stroke="#f27a2d" stroke-width="2"/>
+            <path d="M9 16L7 22L12 19L17 22L15 16" stroke="#f27a2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>You're now a {{ tier_name }} supporter.</div>
       </div>
-    {% else %}
-      <div class="small text-muted">You reached the maximum level</div>
-    {% endif %}
-  </div>
+    </div>
   {% else %}
-  <div class="mt-3">
-    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">Create an account to save your points</a>
-  </div>
+    <div class="card card-white p-3 mt-4 text-start">
+      <div class="fw-semibold">Want your points counted?</div>
+      <div class="text-muted">Sign in or create an account to save your XP and rewards.</div>
+      <div class="d-grid gap-2 mt-3">
+        <a class="btn btn-primary" href="{{ url_for('auth.login', next=claim_next) }}">Sign in to claim points</a>
+        <a class="btn btn-outline-orange" href="{{ url_for('auth.register', next=claim_next) }}">Create account</a>
+      </div>
+    </div>
   {% endif %}
 
-  <div class="mt-4">
-    <a href="#" class="btn btn-link">Follow the restaurant</a>
+  <div class="ig-row">
+    <div>@{{ ig_handle }}</div>
+    <a class="btn btn-primary" href="https://instagram.com/{{ ig_handle }}" target="_blank" rel="noreferrer">Follow</a>
+  </div>
+
+  <div class="d-grid">
+    <a class="btn btn-primary btn-lg" href="{{ url_for('public.tip_page', restaurant_slug=restaurant.slug) }}">Done</a>
   </div>
 </div>
 {% endblock %}

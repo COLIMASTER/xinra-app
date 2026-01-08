@@ -1,75 +1,83 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Xigma Tips{% endblock %}</title>
+  <title>{% block title %}XINRA{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="/static/css/custom.css" rel="stylesheet">
   <link href="/static/css/luxe.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-      <a class="navbar-brand d-flex align-items-center gap-2 brand-text" href="{{ url_for('public.tip_page', restaurant_slug='cafe-luna') }}">XINRA</a>
-      <div class="ms-auto d-flex align-items-center gap-2">
-        <button class="btn btn-outline-dark btn-sm" id="themeToggle" type="button" title="Cambiar tema" aria-label="Cambiar tema">
-          <i id="themeToggleIcon" class="bi bi-moon-stars"></i>
-        </button>
-        <button class="navbar-toggler luxe-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="hamburger" aria-hidden="true">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-          </span>
-        </button>
-      </div>
-      <div class="collapse navbar-collapse" id="nav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.tip_page', restaurant_slug='cafe-luna') }}">Home</a></li>
+  {% if not hide_nav %}
+  <nav class="xinra-nav">
+    <div class="container-xxl nav-inner">
+      <a class="xinra-brand" href="{{ url_for('public.tip_page', restaurant_slug='cafe-luna') }}">
+        <img src="/static/logos/Xinra_icon_color.svg" alt="XINRA" class="nav-logo">
+      </a>
+      <div class="dropdown">
+        <button class="profile-bubble dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           {% if current_user.is_authenticated %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.profile') }}">My Panel</a></li>
-            <li class="nav-item">
+            {% if current_user.avatar_url %}
+              <img src="{{ current_user.avatar_url }}" alt="Profile" class="profile-img">
+            {% elif current_user.staff and current_user.staff.avatar_url %}
+              <img src="{{ current_user.staff.avatar_url }}" alt="Profile" class="profile-img">
+            {% else %}
+              <span>{{ (current_user.name or 'U')[:1].upper() }}</span>
+            {% endif %}
+        {% else %}
+          <i class="bi bi-person-fill"></i>
+        {% endif %}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">Rewards & Recognition</a></li>
+          {% if current_user.is_authenticated and has_staff() %}
+            <li><a class="dropdown-item" href="{{ url_for('dashboard.my_staff_panel') }}">Staff dashboard</a></li>
+          {% endif %}
+          {% if current_user.is_authenticated and has_admin() %}
+            <li><a class="dropdown-item" href="{{ url_for('dashboard.restaurant_view') }}">Admin</a></li>
+          {% endif %}
+          <li><hr class="dropdown-divider"></li>
+          {% if current_user.is_authenticated %}
+            <li>
               <form method="post" action="{{ url_for('auth.logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-link nav-link" type="submit">Log out</button>
+                <button class="dropdown-item" type="submit">Sign out</button>
               </form>
             </li>
           {% else %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Sign in</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">Sign up</a></li>
-          {% endif %}
-          {% if current_user.is_authenticated and has_admin() %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.restaurant_view') }}">Admin</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('auth.login') }}">Sign in</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('auth.register') }}">Sign up</a></li>
           {% endif %}
         </ul>
       </div>
     </div>
   </nav>
+  {% endif %}
 
-  <div class="container-xxl py-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
-          {% for category, message in messages %}
-          <div class="toast align-items-center text-bg-{{ 'success' if category=='success' else 'danger' if category=='danger' else 'info' }} border-0 show" role="alert">
-            <div class="d-flex">
-              <div class="toast-body">{{ message }}</div>
-              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+  <main class="xinra-main">
+    <div class="container-xxl py-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+            {% for category, message in messages %}
+            <div class="toast align-items-center text-bg-{{ 'success' if category=='success' else 'danger' if category=='danger' else 'info' }} border-0 show" role="alert">
+              <div class="d-flex">
+                <div class="toast-body">{{ message }}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
             </div>
+            {% endfor %}
           </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+        {% endif %}
+      {% endwith %}
 
-    {% block content %}{% endblock %}
-  </div>
-
-  
+      {% block content %}{% endblock %}
+    </div>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/app.js"></script>

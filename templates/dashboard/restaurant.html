@@ -1,196 +1,212 @@
 {% extends "_base.html" %}
-{% block title %}Restaurant Dashboard{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-<h3 class="mb-3 display-6 fancy-title">{{ restaurant.name }}</h3>
-
-<div class="card p-3 shadow-sm mb-3">
-  <form class="row g-2 align-items-end" method="post" action="{{ url_for('dashboard.restaurant_logo') }}" enctype="multipart/form-data">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="col-12 col-md-6 d-flex align-items-center gap-3 flex-wrap">
-      {% if restaurant.logo_url %}
-        <img src="{{ restaurant.logo_url }}" alt="logo" style="height:48px" class="rounded border">
-      {% else %}
-        <span class="text-muted small">No logo</span>
-      {% endif %}
-      <div>
-        <label class="form-label">Logo (jpg/png)</label>
-        <input class="form-control" type="file" name="logo" accept="image/png,image/jpeg">
-      </div>
+<div class="xinra-shell">
+  <div class="dashboard-title">Dashboard</div>
+  <div class="welcome-band mt-2">
+    <div>
+      <div class="fw-semibold">Welcome back, {{ current_user.name or 'Admin' }}</div>
+      <div class="text-muted">{{ restaurant.name }}</div>
     </div>
-    <div class="col-12 col-md-6 text-end">
-      <button class="btn btn-primary" type="submit">Update logo</button>
-      {% if restaurant.logo_url %}
-        <button form="logo-del" class="btn btn-outline-dark ms-2" type="submit">Remove</button>
-      {% endif %}
-    </div>
-  </form>
-  {% if restaurant.logo_url %}
-  <form id="logo-del" method="post" action="{{ url_for('dashboard.restaurant_logo_delete') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  </form>
-  {% endif %}
-</div>
+    {% set admin_avatar = current_user.avatar_url %}
+    {% if admin_avatar and 'placehold.co/96x96' in admin_avatar %}
+      {% set admin_avatar = admin_avatar|replace('placehold.co/96x96', 'placehold.co/600x600') %}
+    {% endif %}
+    {% if admin_avatar %}
+      <img src="{{ admin_avatar }}" alt="{{ current_user.name or 'Admin' }}" class="staff-avatar" style="margin:0;">
+    {% else %}
+      <div class="staff-avatar fallback" style="margin:0;">{{ (current_user.name or 'A')[:1].upper() }}</div>
+    {% endif %}
+  </div>
+  <div class="text-muted small mt-2">{{ today_label }}</div>
 
-<div class="row g-3 my-2">
-  <div class="col-12 col-sm-4">
-    <div class="card text-center p-2 shadow-sm"><div class="small text-muted">Today</div><div class="h5">€ {{ '%.2f' % (tips_today/100) }}</div></div>
-  </div>
-  <div class="col-12 col-sm-4">
-    <div class="card text-center p-2 shadow-sm"><div class="small text-muted">Week</div><div class="h5">€ {{ '%.2f' % (tips_week/100) }}</div></div>
-  </div>
-  <div class="col-12 col-sm-4">
-    <div class="card text-center p-2 shadow-sm"><div class="small text-muted">Month</div><div class="h5">€ {{ '%.2f' % (tips_month/100) }}</div></div>
-  </div>
-</div>
-
-<div class="row g-3 my-2">
-  <div class="col-12 col-md-6">
-    <div class="card p-3 shadow-sm">
-      <div class="small text-muted">Average rating</div>
-      <div class="display-6">{{ '%.2f' % rating_avg }}</div>
+  <div class="section-title">Today's summary</div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="text-muted">Today's tips</div>
+      <div class="kpi-value">${{ '%.2f' % (tips_today/100) }}</div>
+      <div class="kpi-sub">{{ '+' if tips_growth_pct >= 0 else '' }}{{ tips_growth_pct }}%</div>
     </div>
-  </div>
-  <div class="col-12 col-md-6">
-    <div class="card p-3 shadow-sm">
-      <div class="small text-muted"># Reviews</div>
-      <div class="display-6">{{ reviews_count }}</div>
+    <div class="kpi-card">
+      <div class="text-muted">Reviews - avg rating</div>
+      <div class="kpi-value">{{ '%.1f' % rating_avg_week }} <i class="bi bi-star-fill" style="color:var(--xinra-orange);"></i></div>
+      <div class="kpi-sub">{{ '+' if reviews_delta >= 0 else '' }}{{ reviews_delta }} reviews</div>
     </div>
-  </div>
-</div>
-
-<div class="card p-3 my-3 shadow-sm chart-card">
-  <div class="d-flex align-items-center justify-content-between">
-    <h5 class="mb-0">Tips per day (current vs previous month)</h5>
-  </div>
-  <div style="height:300px"><canvas id="tipsChart"></canvas></div>
-  <small class="text-muted">X-axis: days of month. Y-axis: euros.</small>
   </div>
 
-<div class="row g-3 my-2">
-  <div class="col-12 col-lg-6">
-    <div class="card p-3 shadow-sm">
-      <h6 class="mb-2">Top 3 by tips</h6>
-      <ul class="list-group list-group-flush">
-        {% for s, total in top_tipped %}
-        <li class="list-group-item d-flex justify-content-between"><span>{{ s.name }}</span><span>€ {{ '%.2f' % ((total or 0)/100) }}</span></li>
-        {% endfor %}
-      </ul>
+  <div class="section-title">Tips by shift</div>
+  <div class="chart-panel">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div class="fw-semibold">Metrics Summary</div>
+      <select class="form-select" style="max-width:160px;" id="shift-range">
+        <option value="week">This week</option>
+        <option value="month">This month</option>
+      </select>
     </div>
+    <div style="height:260px;"><canvas id="shiftChart"></canvas></div>
   </div>
-  <div class="col-12 col-lg-6">
-    <div class="card p-3 shadow-sm">
-      <h6 class="mb-2">Top 3 by rating</h6>
-      <ul class="list-group list-group-flush">
-        {% for s in top_rated %}
-        <li class="list-group-item d-flex justify-content-between"><span>{{ s.name }}</span><span>{{ '%.2f' % s.rating_avg }}</span></li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-</div>
 
-{% if staff_cards %}
-<div class="card p-3 my-3 shadow-sm">
-  <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-    <h5 class="mb-0">Team</h5>
-    <div class="d-flex gap-2 flex-wrap justify-content-end">
-      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.staff_manage') }}">Manage team</a>
-      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.payouts_view') }}">View payouts</a>
-      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('dashboard.coupons_manage') }}">Coupons</a>
+  <div class="section-title">Total tips</div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="text-muted">This period</div>
+      <div class="kpi-value">${{ '%.2f' % (total_tips/100) }}</div>
+      <div class="kpi-sub">Growth vs last week</div>
+      <div class="fw-semibold" style="color:var(--xinra-orange);">{{ '+' if week_growth_pct >= 0 else '' }}{{ week_growth_pct }}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="text-muted">Avg. rating</div>
+      <div class="kpi-value" style="color:var(--xinra-orange);">{{ '%.1f' % rating_avg_week }}</div>
+      <div class="kpi-sub">Based on {{ reviews_week_count }} reviews</div>
     </div>
   </div>
-  <div class="row g-3">
-    {% for s, pending in staff_cards %}
-    <div class="col-12 col-md-6 col-lg-4">
-      <div class="p-3 staff-card h-100">
-        <div class="d-flex align-items-center gap-3">
-          {% if s.avatar_url %}
-            <img class="avatar" src="{{ s.avatar_url }}" alt="{{ s.name }}">
-          {% else %}
-            {% set initials = (s.name.split(' ')[0][:1] + (s.name.split(' ')[1][:1] if s.name.split(' ')|length>1 else '')).upper() %}
-            <div class="avatar-fallback">{{ initials }}</div>
-          {% endif %}
-          <div class="flex-grow-1">
-            <div class="fw-bold">{{ s.name }}</div>
-            <div class="small text-muted">{{ s.role or 'Staff' }}</div>
+
+  <div class="section-title">Top performers this week</div>
+  <div class="top-staff-grid">
+    {% for item in top_staff %}
+      <div class="top-staff-card">
+        {% set top_avatar = item.staff.avatar_url %}
+        {% if top_avatar and 'placehold.co/96x96' in top_avatar %}
+          {% set top_avatar = top_avatar|replace('placehold.co/96x96', 'placehold.co/600x600') %}
+        {% endif %}
+        {% if top_avatar %}
+          <img src="{{ top_avatar }}" alt="{{ item.staff.name }}" class="top-staff-photo">
+        {% else %}
+          <div class="top-staff-photo top-staff-fallback">
+            <div class="staff-initial">{{ item.staff.name[:1].upper() }}</div>
           </div>
-          <div class="text-end">
-            <div class="fw-bold">€ {{ '%.2f' % ((pending or 0)/100) }}</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        <div class="d-flex align-items-center justify-content-between mt-3">
-          <div class="small">
-            {% set full = s.rating_avg|round(0, 'floor')|int %}
-            {% for i in range(1,6) %}
-              {% if i <= full %}&#9733;{% else %}&#9734;{% endif %}
-            {% endfor %}
-            <span class="ms-1">{{ '%.1f' % s.rating_avg }}</span>
-          </div>
-          <div>
-            {% if (pending or 0) > 0 %}
-            <form method="post" action="{{ url_for('dashboard.payouts_view') }}" class="m-0">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="staff_id" value="{{ s.id }}">
-              <button class="btn btn-primary btn-sm" type="submit">Send now</button>
-            </form>
-            {% else %}
-              <span class="text-muted small">Today</span>
-            {% endif %}
+        {% endif %}
+        <div class="top-staff-body">
+          <div class="top-staff-rank">{{ item.rank_label }}</div>
+          <div class="top-staff-name">{{ item.staff.name }}</div>
+          <div class="top-staff-role">{{ item.staff.role or 'Staff' }}</div>
+          <div class="top-staff-stats">
+            <div class="top-staff-stat">
+              <span>Tips</span>
+              <strong>${{ '%.2f' % (item.tips_total/100) }}</strong>
+            </div>
+            <div class="top-staff-stat">
+              <span>Rating</span>
+              <strong>{{ '%.1f' % item.rating_avg }}</strong>
+            </div>
+            <div class="top-staff-stat">
+              <span>Reviews</span>
+              <strong>{{ item.reviews_count }}</strong>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     {% endfor %}
   </div>
-</div>
-{% endif %}
 
-<div class="card p-3 my-3 shadow-sm">
-  <h5 class="mb-2">Recent reviews</h5>
+  <div class="d-grid mt-4">
+    <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard.breakdown_view') }}">View detailed Breakdown</a>
+  </div>
+
+  <div class="section-title">Recent reviews</div>
   {% if recent_reviews %}
-    <ul class="list-group list-group-flush">
+    <div class="review-grid">
       {% for r in recent_reviews %}
-      <li class="list-group-item">
-        <div class="d-flex justify-content-between">
-          <div>
-            <strong>{{ r.staff.name if r.staff_id else 'General' }}</strong>
-            <span class="ms-2">
-              {% for i in range(1,6) %}
-                {% if i <= r.rating %}
-                  &#9733;
-                {% else %}
-                  &#9734;
-                {% endif %}
-              {% endfor %}
-            </span>
+        <div class="review-card">
+          <div class="d-flex justify-content-between">
+            <div class="fw-semibold">{{ r.staff.name if r.staff_id else 'General' }}</div>
+            <div class="text-muted small">{{ r.created_at.strftime('%Y-%m-%d') }}</div>
           </div>
-          <small class="text-muted">{{ r.created_at.strftime('%Y-%m-%d') }}</small>
+          <div class="review-stars">
+            {% for i in range(1,6) %}
+              {% if i <= r.rating %}
+                <i class="bi bi-star-fill"></i>
+              {% else %}
+                <i class="bi bi-star"></i>
+              {% endif %}
+            {% endfor %}
+          </div>
+          {% if r.comment %}
+            <div class="text-muted mt-2">{{ r.comment }}</div>
+          {% endif %}
         </div>
-        {% if r.comment %}
-        <div class="small mt-1 text-muted">{{ r.comment }}</div>
-        {% endif %}
-      </li>
       {% endfor %}
-    </ul>
+    </div>
   {% else %}
-  <div class="text-muted">No reviews yet.</div>
+    <div class="text-muted">No reviews yet.</div>
   {% endif %}
 </div>
 
-<div class="card p-3 my-3 shadow-sm chart-card">
-  <h5 class="mb-2">Totals per staff member</h5>
-  <div style="height:260px"><canvas id="staffChart"></canvas></div>
-  <small class="text-muted">Cumulative totals. Go to <a class="link-dark" href="{{ url_for('dashboard.payouts_view') }}">Payouts</a>.</small>
-</div>
-
-<script id="initialChartsData" type="application/json">
+<script id="shiftData" type="application/json">
   {{ {
-    'daily_labels': daily_labels,
-    'daily_current': daily_current,
-    'daily_previous': daily_previous,
-    'staff_labels': staff_labels,
-    'staff_totals': staff_totals
+    'week': {'labels': week_labels, 'totals': week_totals},
+    'month': {'labels': month_labels, 'totals': month_totals}
   } | tojson | safe }}
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const dataEl = document.getElementById('shiftData');
+    const ctx = document.getElementById('shiftChart');
+    if (!dataEl || !ctx || !window.Chart) return;
+    const payload = JSON.parse(dataEl.textContent);
+    const rangeSelect = document.getElementById('shift-range');
+    const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+    const maxLabelPlugin = {
+      id: 'maxLabel',
+      afterDatasetsDraw(chart) {
+        const {ctx, data, chartArea} = chart;
+        if (!chartArea) return;
+        const dataset = data.datasets[0];
+        const totals = dataset.data;
+        if (!totals.length) return;
+        const maxVal = Math.max(...totals);
+        const maxIndex = totals.indexOf(maxVal);
+        const meta = chart.getDatasetMeta(0);
+        const bar = meta.data[maxIndex];
+        if (!bar) return;
+        const x = bar.x;
+        const radius = 12;
+        let y = bar.y + radius - 2;
+        if (y + radius > bar.base) {
+          y = bar.base - radius;
+        }
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f27a2d';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#111111';
+        ctx.font = '600 11px Manrope';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(money.format(maxVal / 100), x, y);
+        ctx.restore();
+      }
+    };
+
+    let chart = null;
+    const buildChart = (range) => {
+      const labels = payload[range].labels;
+      const totals = payload[range].totals;
+      const maxVal = Math.max(...totals, 0);
+      const colors = totals.map(val => val === maxVal ? '#f27a2d' : '#e5e7eb');
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ data: totals, backgroundColor: colors, borderRadius: 14, borderSkipped: false }] },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: (v) => money.format(v / 100) } },
+            x: { grid: { display: false } }
+          }
+        },
+        plugins: [maxLabelPlugin]
+      });
+    };
+
+    buildChart('week');
+    rangeSelect.addEventListener('change', () => buildChart(rangeSelect.value));
+  });
 </script>
 {% endblock %}

@@ -1,153 +1,114 @@
 {% extends "_base.html" %}
-{% block title %}Send a Tip - {{ restaurant.name }}{% endblock %}
+{% block title %}Leave a Tip - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<div class="brand-hero text-center mb-3">
-  <div class="brand-card d-inline-flex flex-column align-items-center p-3">
-    {% if restaurant.logo_url %}
-    <div class="brand-logo">
-      <img src="{{ restaurant.logo_url }}" alt="logo">
-    </div>
-    {% endif %}
-    <div class="brand-name fancy-title mt-2">{{ restaurant.name }}</div>
-  </div>
+<div class="xinra-shell">
+  <div class="card p-3 text-center mb-4">
+    <div class="section-title" style="margin:0;">{{ restaurant.name }}</div>
+    <div class="text-muted">Thank you for dinning with us!</div>
   </div>
 
-<form method="post" class="card p-3 shadow-sm" id="tip-form">
-  {{ form.hidden_tag() }}
-  {{ form.restaurant_id }}
-  {{ form.staff_id }}
+  <form method="post" id="tip-form" class="card p-3">
+    {{ form.hidden_tag() }}
+    {{ form.restaurant_id }}
+    {{ form.staff_id }}
 
-  <div class="mb-3">
-    <label class="form-label">Choose a recipient</label>
-    <div class="row row-cols-2 row-cols-sm-3 g-2">
+    <div class="section-title">Who would you like to recognise today?</div>
+    <div class="staff-grid">
       {% for s in staff_list %}
-      <div class="col">
-        {% set bio_text = s.bio or 'Outstanding service background and specialty coffee. Barista training, attention to detail, and passion for customer experience. Latte art fan and signature recipes.' %}
-        <div class="card staff-card tilt text-center" data-staff-id="{{ s.id }}" data-bio="{{ bio_text }}" data-name="{{ s.name }}" data-role="{{ s.role }}" data-avatar="{{ s.avatar_url or '' }}">
-          <div class="card-body p-2 tilt-layer">
-            {% if s.avatar_url %}<img src="{{ s.avatar_url }}" class="rounded-circle mb-1" style="width:48px;height:48px;object-fit:cover;">{% else %}<i class="bi bi-person-circle fs-1"></i>{% endif %}
-            <div class="small fw-semibold">{{ s.name }}</div>
-            <div class="text-muted small">{{ s.role }}</div>
-            <button type="button" class="btn btn-outline-dark btn-sm mt-2 staff-bio-btn">Bio</button>
+      <div class="staff-tile" data-staff-id="{{ s.id }}">
+        {% set avatar = s.avatar_url %}
+        {% if avatar and 'placehold.co/96x96' in avatar %}
+          {% set avatar = avatar|replace('placehold.co/96x96', 'placehold.co/600x600') %}
+        {% endif %}
+        {% if avatar %}
+          <img src="{{ avatar }}" alt="{{ s.name }}" class="staff-photo-img">
+        {% else %}
+          <div class="staff-photo staff-photo-fallback">
+            <div class="staff-initial">{{ s.name[:1].upper() }}</div>
           </div>
-        </div>
+        {% endif %}
+        <div class="staff-name-panel">{{ s.name }}</div>
       </div>
       {% endfor %}
     </div>
-  </div>
 
-  <div class="mb-3">
-    <label class="form-label">Amount</label>
-    <div class="d-flex gap-2 mb-2 flex-wrap">
-      <button type="button" class="btn btn-outline-primary amount-btn" data-amount="200">$2</button>
-      <button type="button" class="btn btn-outline-primary amount-btn" data-amount="500">$5</button>
-      <button type="button" class="btn btn-outline-primary amount-btn" data-amount="1000">$10</button>
+    <div class="section-title">Choose your tip amount</div>
+    <div class="tip-options mb-2">
+      <button type="button" class="choice-btn amount-btn" data-amount="200">$2</button>
+      <button type="button" class="choice-btn amount-btn" data-amount="500">$5</button>
+      <button type="button" class="choice-btn amount-btn" data-amount="1000">$10</button>
+      <button type="button" class="choice-btn amount-btn" data-amount="3000">$30</button>
     </div>
-    <div class="input-group">
-      <span class="input-group-text">$</span>
-      <input type="number" min="1" step="1" class="form-control" id="amount-dollars" placeholder="Otro monto">
+    <div class="mb-3">
+      <label class="form-label">Enter your custom amount</label>
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input type="number" min="1" step="1" class="form-control" id="amount-dollars" placeholder="Custom amount">
+      </div>
+      {{ form.amount_cents(class="d-none") }}
     </div>
-    {{ form.amount_cents(class="d-none") }}
-  </div>
 
-  <div class="mb-3">
-    <label class="form-label">Method</label>
-    <div class="d-flex gap-2 flex-wrap">
-      <button type="button" class="btn btn-outline-dark method-btn" data-method="apple_pay"><i class="bi bi-apple"></i> Apple Pay</button>
-      <button type="button" class="btn btn-outline-dark method-btn" data-method="google_pay"><i class="bi bi-google"></i> Google Pay</button>
-      <button type="button" class="btn btn-outline-dark method-btn" data-method="paypal"><i class="bi bi-paypal"></i> PayPal</button>
+    <div class="section-title">Payment methods</div>
+    <div class="payment-options mb-4">
+      <button type="button" class="choice-btn method-btn" data-method="apple_pay"><i class="bi bi-apple me-1"></i>Apple Pay</button>
+      <button type="button" class="choice-btn method-btn" data-method="google_pay"><i class="bi bi-google me-1"></i>Google Pay</button>
+      <button type="button" class="choice-btn method-btn" data-method="paypal"><i class="bi bi-paypal me-1"></i>PayPal</button>
     </div>
     {{ form.method_ui(class="d-none") }}
-  </div>
 
-  <div class="d-grid">
-    {{ form.submit(class="btn btn-primary btn-lg") }}
-  </div>
-</form>
-
-<!-- Staff bio modal -->
-<div class="modal fade" id="bioModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="bioTitle">Biography</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="d-flex align-items-center gap-3 mb-2">
-          <img id="bioAvatar" src="" alt="avatar" class="rounded-circle" style="width:56px;height:56px;object-fit:cover;display:none;">
-          <div>
-            <div class="fw-semibold" id="bioName"></div>
-            <div class="text-muted small" id="bioRole"></div>
-          </div>
-        </div>
-        <div id="bioText" class="small"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
-      </div>
+    <div class="d-grid">
+      <button class="btn btn-primary btn-lg" type="submit">Leave Tip</button>
     </div>
-  </div>
-  </div>
+    <div class="fine-print">100% of your tip goes directly to staff.</div>
+  </form>
+</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('tip-form');
     const amountCents = document.getElementById('amount_cents');
     const amountDollars = document.getElementById('amount-dollars');
     const methodUi = document.getElementById('method_ui');
     const staffId = document.getElementById('staff_id');
 
-    document.querySelectorAll('.amount-btn').forEach(btn => {
+    const setActive = (buttons, target) => {
+      buttons.forEach(btn => btn.classList.toggle('is-active', btn === target));
+    };
+
+    const amountButtons = document.querySelectorAll('.amount-btn');
+    amountButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         amountCents.value = btn.dataset.amount;
         amountDollars.value = '';
-        document.querySelectorAll('.amount-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-    amountDollars.addEventListener('input', () => {
-      const val = parseInt(amountDollars.value || '0', 10);
-      amountCents.value = isNaN(val) ? '' : (val * 100);
-      document.querySelectorAll('.amount-btn').forEach(b=>b.classList.remove('active'));
-    });
-    document.querySelectorAll('.method-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        methodUi.value = btn.dataset.method;
-        document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-    document.querySelectorAll('.staff-card').forEach(card => {
-      card.addEventListener('click', () => {
-        staffId.value = card.dataset.staffId;
-        document.querySelectorAll('.staff-card').forEach(c=>c.classList.remove('border-primary','selected'));
-        card.classList.add('border-primary','selected');
-        // pulse halo
-        const halo = document.createElement('span');
-        halo.className = 'select-halo';
-        card.appendChild(halo);
-        setTimeout(()=> halo.remove(), 600);
+        setActive(amountButtons, btn);
       });
     });
 
-    // Staff bio modal
-    document.querySelectorAll('.staff-bio-btn').forEach(btn => {
-      btn.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const card = btn.closest('.staff-card');
-        const bioText = card.dataset.bio || '';
-        const name = card.dataset.name || '';
-        const role = card.dataset.role || '';
-        const avatar = card.dataset.avatar || '';
-        document.getElementById('bioTitle').textContent = 'Biography';
-        document.getElementById('bioText').textContent = bioText;
-        document.getElementById('bioName').textContent = name;
-        document.getElementById('bioRole').textContent = role;
-        const img = document.getElementById('bioAvatar');
-        if (avatar){ img.src = avatar; img.style.display = 'block'; } else { img.style.display = 'none'; }
-        const modal = new bootstrap.Modal(document.getElementById('bioModal'));
-        modal.show();
+    amountDollars.addEventListener('input', () => {
+      const val = parseInt(amountDollars.value || '0', 10);
+      amountCents.value = isNaN(val) ? '' : (val * 100);
+      amountButtons.forEach(btn => btn.classList.remove('is-active'));
+    });
+
+    const methodButtons = document.querySelectorAll('.method-btn');
+    methodButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        methodUi.value = btn.dataset.method;
+        setActive(methodButtons, btn);
+      });
+    });
+
+    if (methodUi.value) {
+      const preset = Array.from(methodButtons).find(btn => btn.dataset.method === methodUi.value);
+      if (preset) preset.classList.add('is-active');
+    } else if (methodButtons.length) {
+      methodButtons[0].click();
+    }
+
+    document.querySelectorAll('.staff-tile').forEach(card => {
+      card.addEventListener('click', () => {
+        staffId.value = card.dataset.staffId;
+        document.querySelectorAll('.staff-tile').forEach(c => c.classList.remove('is-selected'));
+        card.classList.add('is-selected');
       });
     });
   });

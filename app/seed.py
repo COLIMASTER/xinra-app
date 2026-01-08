@@ -14,12 +14,13 @@ def run_seed():
 
         if not RewardTier.query.first():
             db.session.add_all([
-                RewardTier(name="Bronze", threshold_xp=0),
-                RewardTier(name="Silver", threshold_xp=100),
-                RewardTier(name="Gold", threshold_xp=250),
-                RewardTier(name="Platinum", threshold_xp=500),
-                RewardTier(name="Diamond", threshold_xp=1000),
-                RewardTier(name="Master", threshold_xp=2000),
+                RewardTier(name="Wood", threshold_xp=0),
+                RewardTier(name="Stone", threshold_xp=50),
+                RewardTier(name="Bronze", threshold_xp=150),
+                RewardTier(name="Silver", threshold_xp=300),
+                RewardTier(name="Gold", threshold_xp=600),
+                RewardTier(name="Platinum", threshold_xp=1000),
+                RewardTier(name="Diamond", threshold_xp=1500),
             ])
 
         r = Restaurant.query.filter_by(slug="cafe-luna").first()
@@ -31,10 +32,10 @@ def run_seed():
         staff = Staff.query.filter_by(restaurant_id=r.id).all()
         if not staff:
             staff = [
-                Staff(restaurant_id=r.id, name="Mia", role="Barista", avatar_url="https://placehold.co/96x96?text=M", bio="Latte art specialist and single-origin coffee lover."),
-                Staff(restaurant_id=r.id, name="Jake", role="Barista", avatar_url="https://placehold.co/96x96?text=J", bio="Espresso perfectionist; try his cappuccino."),
-                Staff(restaurant_id=r.id, name="Tess", role="Server", avatar_url="https://placehold.co/96x96?text=T", bio="Always smiling; she’ll make your visit delightful."),
-                Staff(restaurant_id=r.id, name="Leo", role="Cook", avatar_url="https://placehold.co/96x96?text=L", bio="Creative chef; responsible for daily specials."),
+                Staff(restaurant_id=r.id, name="Mia", role="Barista", avatar_url="https://placehold.co/400x400?text=M", bio="Latte art specialist and single-origin coffee lover."),
+                Staff(restaurant_id=r.id, name="Jake", role="Barista", avatar_url="https://placehold.co/400x400?text=J", bio="Espresso perfectionist; try his cappuccino."),
+                Staff(restaurant_id=r.id, name="Tess", role="Server", avatar_url="https://placehold.co/400x400?text=T", bio="Always smiling; she’ll make your visit delightful."),
+                Staff(restaurant_id=r.id, name="Leo", role="Cook", avatar_url="https://placehold.co/400x400?text=L", bio="Creative chef; responsible for daily specials."),
             ]
             db.session.add_all(staff)
 
@@ -51,6 +52,17 @@ def run_seed():
             db.session.add(mia_user)
             db.session.flush()
             db.session.add(Membership(user_id=mia_user.id, restaurant_id=r.id, role="staff"))
+        if mia_user:
+            existing = Membership.query.filter_by(user_id=mia_user.id, restaurant_id=r.id, role="staff").first()
+            if not existing:
+                db.session.add(Membership(user_id=mia_user.id, restaurant_id=r.id, role="staff"))
+
+            mia_staff = Staff.query.filter_by(restaurant_id=r.id, name="Mia").first()
+            if mia_staff and mia_staff.user_id != mia_user.id:
+                mia_staff.user_id = mia_user.id
+                if not mia_staff.login_initial_password:
+                    mia_staff.login_initial_password = "demo123"
+                db.session.add(mia_staff)
 
         db.session.commit()
 

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, date
 from collections import defaultdict
+import secrets
+import string
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response
+from sqlalchemy import func
 from flask_login import login_required, current_user
 
 from ..extensions import db
@@ -15,11 +18,63 @@ from ..models import (
     Membership,
     Transfer,
     Coupon,
+    User,
 )
 from ..services.image_service import process_and_save_image
+from ..services.reward_service import add_xp, get_tier_progress
+from ..utils.security import hash_password
 
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
+
+
+def _generate_random_password(length: int = 10) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def _generate_staff_email(name: str, restaurant: Restaurant) -> str:
+    base = (name or "staff").lower()
+    cleaned = []
+    for ch in base:
+        if ch.isalnum():
+            cleaned.append(ch)
+        elif ch in (" ", ".", "_", "-"):
+            cleaned.append(".")
+    base_name = "".join(cleaned).strip(".") or "staff"
+    # Use a syntactically valid domain so that WTForms Email() validator accepts it
+    domain = "example.com"
+    base_email = f"{restaurant.slug}.{base_name}@{domain}"
+    email = base_email
+    idx = 1
+    while User.query.filter_by(email=email).first() is not None:
+        email = f"{restaurant.slug}.{base_name}{idx}@{domain}"
+        idx += 1
+    return email
+
+
+def _ensure_staff_login(staff: Staff, restaurant: Restaurant) -> None:
+    if staff.user_id:
+        # Ensure legacy generated emails with old domains are migrated to a valid one
+        if staff.user and staff.user.email and staff.user.email.endswith("@staff.local"):
+            staff.user.email = _generate_staff_email(staff.name, restaurant)
+            db.session.add(staff.user)
+        return
+    email = _generate_staff_email(staff.name, restaurant)
+    raw_password = _generate_random_password()
+    user = User(email=email, name=staff.name, password_hash=hash_password(raw_password))
+    db.session.add(user)
+    db.session.flush()
+    staff.user_id = user.id
+    staff.login_initial_password = raw_password
+    db.session.add(staff)
+    existing = (
+        Membership.query.filter_by(user_id=user.id, restaurant_id=restaurant.id, role="staff")
+        .order_by(Membership.id.asc())
+        .first()
+    )
+    if not existing:
+        db.session.add(Membership(user_id=user.id, restaurant_id=restaurant.id, role="staff"))
 
 
 def _require_admin_restaurant() -> Restaurant:
@@ -37,6 +92,41 @@ def _require_admin_restaurant() -> Restaurant:
     return m.restaurant
 
 
+def _resolve_staff_for_user(user: User):
+    staff = Staff.query.filter_by(user_id=user.id, active=True).first()
+    if staff:
+        return staff, Restaurant.query.get(staff.restaurant_id)
+    membership = (
+        Membership.query
+        .filter(Membership.user_id == user.id, Membership.role == "staff")
+        .order_by(Membership.id.asc())
+        .first()
+    )
+    if not membership:
+        return None, None
+    restaurant = membership.restaurant or Restaurant.query.get(membership.restaurant_id)
+    if not restaurant:
+        return None, None
+    name = (user.name or "").strip()
+    candidate = None
+    if name:
+        candidate = (
+            Staff.query
+            .filter(Staff.restaurant_id == restaurant.id, Staff.active.is_(True))
+            .filter(func.lower(Staff.name) == name.lower())
+            .first()
+        )
+    if not candidate:
+        candidate = Staff(restaurant_id=restaurant.id, name=name or "Staff", role="Staff", active=True, user_id=user.id)
+        db.session.add(candidate)
+        db.session.commit()
+    else:
+        candidate.user_id = user.id
+        db.session.add(candidate)
+        db.session.commit()
+    return candidate, restaurant
+
+
 def _sum_tips_q(q):
     total = 0
     for t in q:
@@ -44,91 +134,161 @@ def _sum_tips_q(q):
     return total
 
 
+def _sum_amounts(rows):
+    total = 0
+    for row in rows:
+        total += int(getattr(row, "amount_cents", 0) or 0)
+    return total
+
+
+def _pct_change(current: int, previous: int) -> int:
+    if previous <= 0:
+        return 100 if current > 0 else 0
+    return int(round(((current - previous) / previous) * 100))
+
+
+def _avg_rating(reviews):
+    if not reviews:
+        return 0.0, 0
+    total = sum(int(r.rating or 0) for r in reviews)
+    count = len(reviews)
+    return (total / count), count
+
+
+def _totals_by_day(rows, start: datetime, days: int):
+    totals = [0] * days
+    for row in rows:
+        created = row.created_at
+        if created < start:
+            continue
+        idx = (created.date() - start.date()).days
+        if 0 <= idx < days:
+            totals[idx] += int(getattr(row, "amount_cents", 0) or 0)
+    return totals
+
+
+def _pending_balance_for_staff(restaurant_id: int, staff_id: int) -> int:
+    total = _sum_amounts(Tip.query.filter_by(restaurant_id=restaurant_id, staff_id=staff_id).all())
+    sent = _sum_amounts(Transfer.query.filter_by(restaurant_id=restaurant_id, staff_id=staff_id).all())
+    return max(0, total - sent)
+
+
+def _build_restaurant_dashboard_context(r: Restaurant):
+    now = datetime.utcnow()
+    start_today = datetime(now.year, now.month, now.day)
+    start_yesterday = start_today - timedelta(days=1)
+    start_week = start_today - timedelta(days=start_today.weekday())
+    start_last_week = start_week - timedelta(days=7)
+    start_month = datetime(now.year, now.month, 1)
+    next_month = datetime(now.year + (1 if now.month == 12 else 0), (now.month % 12) + 1, 1)
+    days_in_month = (next_month - start_month).days
+
+    tips_today_rows = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_today).all()
+    tips_yesterday_rows = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_yesterday, Tip.created_at < start_today).all()
+    tips_week_rows = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_week).all()
+    tips_last_week_rows = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_last_week, Tip.created_at < start_week).all()
+    tips_month_rows = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_month).all()
+
+    tips_today = _sum_tips_q(tips_today_rows)
+    tips_yesterday = _sum_tips_q(tips_yesterday_rows)
+    tips_week = _sum_tips_q(tips_week_rows)
+    tips_last_week = _sum_tips_q(tips_last_week_rows)
+    tips_month = _sum_tips_q(tips_month_rows)
+
+    tips_growth_pct = _pct_change(tips_today, tips_yesterday)
+    week_growth_pct = _pct_change(tips_week, tips_last_week)
+
+    reviews_week_rows = Review.query.filter_by(restaurant_id=r.id).filter(Review.created_at >= start_week).all()
+    reviews_last_week_rows = Review.query.filter_by(restaurant_id=r.id).filter(Review.created_at >= start_last_week, Review.created_at < start_week).all()
+    rating_avg_week, reviews_week_count = _avg_rating(reviews_week_rows)
+    reviews_delta = reviews_week_count - len(reviews_last_week_rows)
+
+    week_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    week_totals = _totals_by_day(tips_week_rows, start_week, 7)
+    month_labels = [str(i) for i in range(1, days_in_month + 1)]
+    month_totals = _totals_by_day(tips_month_rows, start_month, days_in_month)
+
+    staff_all = Staff.query.filter_by(restaurant_id=r.id, active=True).order_by(Staff.name.asc()).all()
+    totals_by_staff = defaultdict(int)
+    for t in tips_week_rows:
+        if t.staff_id:
+            totals_by_staff[t.staff_id] += int(t.amount_cents or 0)
+    ratings_by_staff = defaultdict(list)
+    for rv in reviews_week_rows:
+        if rv.staff_id:
+            ratings_by_staff[rv.staff_id].append(int(rv.rating or 0))
+
+    staff_metrics = []
+    for st in staff_all:
+        ratings = ratings_by_staff.get(st.id, [])
+        rating_avg = (sum(ratings) / len(ratings)) if ratings else 0.0
+        staff_metrics.append({
+            "staff": st,
+            "tips_total": totals_by_staff.get(st.id, 0),
+            "rating_avg": rating_avg,
+            "reviews_count": len(ratings),
+        })
+    staff_metrics.sort(key=lambda item: item["tips_total"], reverse=True)
+    rank_labels = ["Gold Performer", "Silver Star", "Bronze Highlight"]
+    top_staff = []
+    for idx, item in enumerate(staff_metrics[:3]):
+        item["rank_label"] = rank_labels[idx] if idx < len(rank_labels) else "Top Performer"
+        top_staff.append(item)
+
+    recent_reviews = Review.query.filter_by(restaurant_id=r.id).order_by(Review.created_at.desc()).limit(12).all()
+
+    today_label = now.strftime("%Y-%m-%d")
+
+    return {
+        "tips_today": tips_today,
+        "tips_week": tips_week,
+        "tips_month": tips_month,
+        "tips_growth_pct": tips_growth_pct,
+        "week_growth_pct": week_growth_pct,
+        "rating_avg_week": rating_avg_week,
+        "reviews_week_count": reviews_week_count,
+        "reviews_delta": reviews_delta,
+        "week_labels": week_labels,
+        "week_totals": week_totals,
+        "month_labels": month_labels,
+        "month_totals": month_totals,
+        "total_tips": tips_week,
+        "top_staff": top_staff,
+        "today_label": today_label,
+        "recent_reviews": recent_reviews,
+    }
+
+
+def _build_staff_dashboard_context(r: Restaurant, s: Staff):
+    ctx = _build_restaurant_dashboard_context(r)
+    pending_balance = _pending_balance_for_staff(r.id, s.id)
+
+    user = s.user
+    current_tier = None
+    next_tier = None
+    progress_pct = 0
+    if user:
+        _, current_tier, next_tier, progress_pct = get_tier_progress(user)
+
+    ctx.update({
+        "pending_balance": pending_balance,
+        "current_tier": current_tier,
+        "next_tier": next_tier,
+        "progress_pct": progress_pct,
+        "user_xp": user.xp if user else 0,
+    })
+    return ctx
+
+
 @dashboard_bp.route("/restaurant")
 @login_required
 def restaurant_view():
     r = _require_admin_restaurant()
-
-    now = datetime.utcnow()
-    start_today = datetime(now.year, now.month, now.day)
-    start_week = start_today - timedelta(days=start_today.weekday())
-    start_month = datetime(now.year, now.month, 1)
-
-    tips_today = _sum_tips_q(Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_today).all())
-    tips_week = _sum_tips_q(Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_week).all())
-    tips_month = _sum_tips_q(Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_month).all())
-
-    reviews_q = Review.query.filter_by(restaurant_id=r.id).all()
-    rating_avg = (sum(rv.rating for rv in reviews_q) / len(reviews_q)) if reviews_q else 0.0
-    reviews_count = len(reviews_q)
-
-    # Top 3 by tips
-    totals_by_staff: dict[int, int] = defaultdict(int)
-    for t in Tip.query.filter_by(restaurant_id=r.id).all():
-        if t.staff_id:
-            totals_by_staff[t.staff_id] += int(t.amount_cents or 0)
-    staff_objs = {s.id: s for s in Staff.query.filter_by(restaurant_id=r.id).all()}
-    top_tipped = sorted(((staff_objs.get(sid), total) for sid, total in totals_by_staff.items() if staff_objs.get(sid)), key=lambda x: x[1], reverse=True)[:3]
-
-    # Top 3 by rating
-    top_rated = Staff.query.filter_by(restaurant_id=r.id, active=True).order_by(Staff.rating_avg.desc()).limit(3).all()
-
-    # Staff cards with pending amounts (mock: tips total - sent transfers)
-    sent_by_staff: dict[int, int] = defaultdict(int)
-    for tr in Transfer.query.filter_by(restaurant_id=r.id).all():
-        if tr.staff_id:
-            sent_by_staff[tr.staff_id] += int(tr.amount_cents or 0)
-    staff_cards = []
-    staff_all = Staff.query.filter_by(restaurant_id=r.id, active=True).order_by(Staff.name.asc()).all()
-    for s in staff_all:
-        pending = totals_by_staff.get(s.id, 0) - sent_by_staff.get(s.id, 0)
-        staff_cards.append((s, max(0, pending)))
-
-    # Charts data: current month vs previous month daily totals
-    def _daily_totals_for_month(year: int, month: int):
-        start = datetime(year, month, 1)
-        if month == 12:
-            end = datetime(year + 1, 1, 1)
-        else:
-            end = datetime(year, month + 1, 1)
-        days = (end - start).days
-        totals = [0] * days
-        rows = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start, Tip.created_at < end).all()
-        for t in rows:
-            idx = (t.created_at.date() - start.date()).days
-            if 0 <= idx < days:
-                totals[idx] += int(t.amount_cents or 0)
-        labels = [str(d + 1) for d in range(days)]
-        return labels, totals
-
-    curr_labels, daily_current = _daily_totals_for_month(now.year, now.month)
-    prev_year, prev_month = (now.year - 1, 12) if now.month == 1 else (now.year, now.month - 1)
-    prev_labels, daily_previous = _daily_totals_for_month(prev_year, prev_month)
-    # Align label lengths for template simplicity
-    daily_previous = (daily_previous + [0] * max(0, len(curr_labels) - len(daily_previous)))[: len(curr_labels)]
-
-    staff_labels = [s.name for s in staff_all]
-    staff_totals = [totals_by_staff.get(s.id, 0) for s in staff_all]
-
-    recent_reviews = Review.query.filter_by(restaurant_id=r.id).order_by(Review.created_at.desc()).limit(10).all()
-
+    ctx = _build_restaurant_dashboard_context(r)
     return render_template(
         "dashboard/restaurant.html",
         restaurant=r,
-        tips_today=tips_today,
-        tips_week=tips_week,
-        tips_month=tips_month,
-        rating_avg=rating_avg,
-        reviews_count=reviews_count,
-        top_tipped=top_tipped,
-        top_rated=top_rated,
-        staff_cards=staff_cards,
-        daily_labels=curr_labels,
-        daily_current=daily_current,
-        daily_previous=daily_previous,
-        staff_labels=staff_labels,
-        staff_totals=staff_totals,
-        recent_reviews=recent_reviews,
+        **ctx,
     )
 
 
@@ -274,7 +434,18 @@ def breakdown_view():
                 f"{t.id},{t.created_at},{t.amount_cents},{t.method_ui},{t.staff_id or ''},{t.user_id or ''}" for t in tips
             ]
             return Response("\n".join(lines), mimetype="text/csv")
-        return render_template("dashboard/breakdown.html", restaurant=r, tab="tips", tips=tips)
+    return render_template("dashboard/breakdown.html", restaurant=r, tab="tips", tips=tips)
+
+
+@dashboard_bp.route("/me/staff")
+@login_required
+def my_staff_panel():
+    s, r = _resolve_staff_for_user(current_user)
+    if not s or not r:
+        flash("No staff profile associated with this account", "info")
+        return redirect(url_for("auth.profile"))
+    ctx = _build_staff_dashboard_context(r, s)
+    return render_template("dashboard/staff.html", restaurant=r, staff=s, **ctx)
 
 
 @dashboard_bp.route("/staff/<int:staff_id>")
@@ -282,23 +453,122 @@ def breakdown_view():
 def staff_view(staff_id: int):
     r = _require_admin_restaurant()
     s = Staff.query.filter_by(id=staff_id, restaurant_id=r.id).first_or_404()
+    ctx = _build_staff_dashboard_context(r, s)
+    return render_template("dashboard/staff.html", restaurant=r, staff=s, **ctx)
+
+
+@dashboard_bp.route("/me/breakdown")
+@login_required
+def staff_breakdown():
+    s, r = _resolve_staff_for_user(current_user)
+    if not s or not r:
+        flash("No staff profile associated with this account", "info")
+        return redirect(url_for("auth.profile"))
     now = datetime.utcnow()
     start_today = datetime(now.year, now.month, now.day)
     start_week = start_today - timedelta(days=start_today.weekday())
-    tips_today = _sum_tips_q(Tip.query.filter_by(restaurant_id=r.id, staff_id=s.id).filter(Tip.created_at >= start_today).all())
-    tips_week = _sum_tips_q(Tip.query.filter_by(restaurant_id=r.id, staff_id=s.id).filter(Tip.created_at >= start_week).all())
-    rating_vals = [rv.rating for rv in Review.query.filter_by(restaurant_id=r.id, staff_id=s.id).all()]
-    rating_avg = (sum(rating_vals) / len(rating_vals)) if rating_vals else 0.0
-    last_tips = Tip.query.filter_by(restaurant_id=r.id, staff_id=s.id).order_by(Tip.created_at.desc()).limit(10).all()
-    last_reviews = Review.query.filter_by(restaurant_id=r.id, staff_id=s.id).order_by(Review.created_at.desc()).limit(10).all()
-    return render_template("dashboard/staff.html", restaurant=r, staff=s, tips_today=tips_today, tips_week=tips_week, rating_avg=rating_avg, last_tips=last_tips, last_reviews=last_reviews)
+
+    tips_week_all = Tip.query.filter_by(restaurant_id=r.id).filter(Tip.created_at >= start_week).all()
+    totals_by_staff = defaultdict(int)
+    pooled_week = 0
+    for t in tips_week_all:
+        if t.staff_id:
+            totals_by_staff[t.staff_id] += int(t.amount_cents or 0)
+        else:
+            pooled_week += int(t.amount_cents or 0)
+
+    reviews_week_all = Review.query.filter_by(restaurant_id=r.id).filter(Review.created_at >= start_week).all()
+    ratings_by_staff = defaultdict(list)
+    for rv in reviews_week_all:
+        if rv.staff_id:
+            ratings_by_staff[rv.staff_id].append(int(rv.rating or 0))
+
+    staff_all = Staff.query.filter_by(restaurant_id=r.id, active=True).order_by(Staff.name.asc()).all()
+    earnings_list = []
+    for st in staff_all:
+        ratings = ratings_by_staff.get(st.id, [])
+        rating_avg = (sum(ratings) / len(ratings)) if ratings else 0.0
+        earnings_list.append({
+            "staff": st,
+            "tips_total": totals_by_staff.get(st.id, 0),
+            "rating_avg": rating_avg,
+            "reviews_count": len(ratings),
+        })
+    earnings_list.sort(key=lambda item: item["tips_total"], reverse=True)
+
+    reviews_week_staff = Review.query.filter_by(restaurant_id=r.id, staff_id=s.id).filter(Review.created_at >= start_week).order_by(Review.created_at.desc()).all()
+    rating_avg_week, _ = _avg_rating(reviews_week_staff)
+    recent_feedback = reviews_week_staff[:12]
+
+    direct_week = totals_by_staff.get(s.id, 0)
+    today_label = now.strftime("%Y-%m-%d")
+    message = f"Keep it up, {s.name}, you're on track for top performer this month."
+
+    return render_template(
+        "dashboard/breakdown_staff.html",
+        restaurant=r,
+        staff=s,
+        pooled_week=pooled_week,
+        direct_week=direct_week,
+        rating_avg_week=rating_avg_week,
+        earnings_list=earnings_list,
+        recent_feedback=recent_feedback,
+        today_label=today_label,
+        message=message,
+    )
+
+
+@dashboard_bp.route("/me/transfer", methods=["POST"])
+@login_required
+def staff_transfer():
+    s, r = _resolve_staff_for_user(current_user)
+    if not s or not r:
+        flash("No staff profile associated with this account", "info")
+        return redirect(url_for("auth.profile"))
+    pending = _pending_balance_for_staff(r.id, s.id)
+    if pending <= 0:
+        flash("No pending balance to transfer", "info")
+        return redirect(url_for("dashboard.my_staff_panel"))
+    tr = Transfer(restaurant_id=r.id, staff_id=s.id, amount_cents=pending, status="sent", created_at=datetime.utcnow())
+    db.session.add(tr)
+    add_xp(current_user, 10)
+    db.session.commit()
+    return redirect(url_for("dashboard.transfer_complete"))
+
+
+@dashboard_bp.route("/me/transfer/complete")
+@login_required
+def transfer_complete():
+    s, r = _resolve_staff_for_user(current_user)
+    if not s or not r:
+        flash("No staff profile associated with this account", "info")
+        return redirect(url_for("auth.profile"))
+    now = datetime.utcnow()
+    start_month = datetime(now.year, now.month, 1)
+    transfer_count = (
+        Transfer.query.filter_by(restaurant_id=r.id, staff_id=s.id)
+        .filter(Transfer.created_at >= start_month)
+        .count()
+    )
+    return render_template("dashboard/transfer_complete.html", restaurant=r, staff=s, transfer_count=transfer_count)
 
 
 @dashboard_bp.route("/staff/manage")
 @login_required
 def staff_manage():
     r = _require_admin_restaurant()
-    staff_list = Staff.query.filter_by(restaurant_id=r.id).order_by(Staff.name.asc()).all()
+    staff_query = Staff.query.filter_by(restaurant_id=r.id).order_by(Staff.name.asc())
+    staff_list = staff_query.all()
+    changed = False
+    for s in staff_list:
+        before_email = s.user.email if s.user else None
+        before_user_id = s.user_id
+        _ensure_staff_login(s, r)
+        if s.user_id != before_user_id or (s.user and s.user.email != before_email):
+            changed = True
+    if changed:
+        db.session.commit()
+        staff_list = staff_query.all()
     return render_template("dashboard/staff_manage.html", restaurant=r, staff_list=staff_list)
 
 
@@ -322,6 +592,8 @@ def staff_create():
             return redirect(url_for("dashboard.staff_manage"))
     s = Staff(restaurant_id=r.id, name=name, role=role, bio=bio, avatar_url=avatar_url)
     db.session.add(s)
+    db.session.flush()
+    _ensure_staff_login(s, r)
     db.session.commit()
     flash("Staff member created", "success")
     return redirect(url_for("dashboard.staff_manage"))

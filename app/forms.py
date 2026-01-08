@@ -14,7 +14,7 @@ class TipForm(FlaskForm):
 
 class ReviewForm(FlaskForm):
     rating = IntegerField(validators=[DataRequired(), NumberRange(min=1, max=5)])
-    comment = TextAreaField(validators=[Optional(), Length(max=500)])
+    comment = TextAreaField(validators=[Optional(), Length(max=300)])
     share_allowed = BooleanField()
     photo = FileField(validators=[Optional(), FileAllowed(["jpg", "jpeg", "png"], "JPG/PNG only")])
     submit = SubmitField("Send feedback")
