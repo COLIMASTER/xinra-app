@@ -30,26 +30,6 @@
     </div>
   </div>
 
-  <div class="section-title">Admin profile photo</div>
-  <div class="card card-white p-3">
-    <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
-      {% set admin_avatar = current_user.avatar_url %}
-      {% if admin_avatar and 'placehold.co/96x96' in admin_avatar %}
-        {% set admin_avatar = admin_avatar|replace('placehold.co/96x96', 'placehold.co/600x600') %}
-      {% endif %}
-      {% if admin_avatar %}
-        <img src="{{ admin_avatar }}" alt="{{ current_user.name or 'Admin' }}" class="profile-photo-preview">
-      {% else %}
-        <div class="profile-photo-fallback">{{ (current_user.name or 'A')[:1].upper() }}</div>
-      {% endif %}
-      <form method="post" action="{{ url_for('dashboard.update_profile_avatar') }}" enctype="multipart/form-data" class="w-100">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
-        <button class="btn btn-primary mt-2" type="submit">Update photo</button>
-      </form>
-    </div>
-  </div>
-
   <div class="section-title">Add staff</div>
   <div class="card card-white p-3">
     <form class="row g-2" method="post" action="{{ url_for('dashboard.staff_create') }}" enctype="multipart/form-data">

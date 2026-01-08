@@ -115,6 +115,15 @@ class Media(db.Model):
     height = db.Column(db.Integer, nullable=True)
 
 
+class ImageAsset(db.Model):
+    __tablename__ = "image_assets"
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), unique=True, nullable=False)
+    content_type = db.Column(db.String(50), nullable=False)
+    data = db.Column(db.LargeBinary, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class RewardTier(db.Model):
     __tablename__ = "reward_tiers"
     id = db.Column(db.Integer, primary_key=True)

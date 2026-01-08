@@ -1,7 +1,11 @@
 import os
 import secrets
+from io import BytesIO
 from PIL import Image
 from flask import current_app, url_for
+
+from ..extensions import db
+from ..models import ImageAsset
 
 
 ALLOWED_EXTS = {"jpg", "jpeg", "png"}
@@ -20,7 +24,9 @@ def process_and_save_image(file_storage):
     if size > max_mb * 1024 * 1024:
         raise ValueError("Image exceeds size limit")
 
-    img = Image.open(file_storage.stream)
+    raw = file_storage.stream.read()
+    file_storage.stream.seek(0)
+    img = Image.open(BytesIO(raw))
     img = img.convert("RGB") if img.mode in ("P", "RGBA") else img
 
     max_side = 1600
@@ -40,7 +46,19 @@ def process_and_save_image(file_storage):
     uploads_dir = current_app.config.get("UPLOADS_DIR", "./uploads")
     os.makedirs(uploads_dir, exist_ok=True)
     path = os.path.join(uploads_dir, name)
-    img.save(path, format="JPEG" if ext in {"jpg", "jpeg"} else "PNG", optimize=True, quality=85)
+    save_format = "JPEG" if ext in {"jpg", "jpeg"} else "PNG"
+    out = BytesIO()
+    save_kwargs = {"format": save_format, "optimize": True}
+    if save_format == "JPEG":
+        save_kwargs["quality"] = 85
+    img.save(out, **save_kwargs)
+    data = out.getvalue()
+    with open(path, "wb") as f:
+        f.write(data)
+
+    content_type = "image/jpeg" if save_format == "JPEG" else "image/png"
+    asset = ImageAsset(filename=name, content_type=content_type, data=data)
+    db.session.add(asset)
 
     # URL pública servida por el blueprint de uploads
     try:
