@@ -120,7 +120,9 @@ Hay dos enfoques habituales:
    - Render solo ejecuta la app, sin tocar migraciones.
 
 2. **Aplicar migraciones en Render en cada despliegue** (necesitaría script de deploy):
-   - No está configurado actualmente, pero se podría añadir un script de inicio que ejecute `flask db upgrade` antes de lanzar gunicorn.
+   - Ahora se puede habilitar con la variable `AUTO_MIGRATE=1` en Render.
+   - Con `AUTO_MIGRATE=1`, `wsgi.py` ejecuta `flask db upgrade` al arrancar, usando un lock de Postgres para evitar carreras.
+   - Esto es útil para prototipos; en producción grande se recomienda el enfoque 1.
 
 Con la configuración actual, el escenario 1 es el esperado.
 
