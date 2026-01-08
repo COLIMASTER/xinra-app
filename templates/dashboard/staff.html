@@ -35,6 +35,23 @@
     {% endif %}
   </div>
 
+  <div class="card card-white p-3 mt-3">
+    <div class="fw-semibold">Your profile photo</div>
+    <div class="text-muted small">Shown to guests and admins.</div>
+    <div class="d-flex flex-column flex-md-row align-items-center gap-3 mt-2">
+      {% if staff.avatar_url %}
+        <img src="{{ staff.avatar_url }}" alt="{{ staff.name }}" class="profile-photo-preview">
+      {% else %}
+        <div class="profile-photo-fallback">{{ staff.name[:1].upper() }}</div>
+      {% endif %}
+      <form method="post" action="{{ url_for('dashboard.staff_avatar_update') }}" enctype="multipart/form-data" class="w-100">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
+        <button class="btn btn-primary mt-2" type="submit">Update photo</button>
+      </form>
+    </div>
+  </div>
+
   <div class="section-title">Today's summary</div>
   <div class="kpi-grid">
     <div class="kpi-card">
@@ -118,7 +135,17 @@
     <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard.staff_breakdown') }}">View detailed Breakdown</a>
   </div>
 
-  <div class="section-title">Recent reviews</div>
+  <div class="d-flex align-items-center justify-content-between mt-4">
+    <div class="section-title" style="margin-bottom:0;">Recent reviews</div>
+    <form method="get">
+      <select class="form-select form-select-sm" name="reviews" onchange="this.form.submit()" style="max-width:160px;">
+        <option value="week" {% if review_range == 'week' %}selected{% endif %}>This week</option>
+        <option value="month" {% if review_range == 'month' %}selected{% endif %}>This month</option>
+        <option value="90" {% if review_range == '90' %}selected{% endif %}>Last 90 days</option>
+        <option value="all" {% if review_range == 'all' %}selected{% endif %}>All time</option>
+      </select>
+    </form>
+  </div>
   {% if recent_reviews %}
     <div class="review-grid">
       {% for r in recent_reviews %}

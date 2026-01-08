@@ -173,7 +173,7 @@ def _pending_balance_for_staff(restaurant_id: int, staff_id: int) -> int:
     return max(0, total - sent)
 
 
-def _build_restaurant_dashboard_context(r: Restaurant):
+def _build_restaurant_dashboard_context(r: Restaurant, review_range: str = "week"):
     now = datetime.utcnow()
     start_today = datetime(now.year, now.month, now.day)
     start_yesterday = start_today - timedelta(days=1)
@@ -235,7 +235,21 @@ def _build_restaurant_dashboard_context(r: Restaurant):
         item["rank_label"] = rank_labels[idx] if idx < len(rank_labels) else "Top Performer"
         top_staff.append(item)
 
-    recent_reviews = Review.query.filter_by(restaurant_id=r.id).order_by(Review.created_at.desc()).limit(12).all()
+    range_key = (review_range or "week").lower()
+    if range_key not in ("week", "month", "90", "all"):
+        range_key = "week"
+    review_start = None
+    if range_key == "week":
+        review_start = start_week
+    elif range_key == "month":
+        review_start = start_month
+    elif range_key == "90":
+        review_start = now - timedelta(days=90)
+
+    recent_reviews_q = Review.query.filter_by(restaurant_id=r.id)
+    if review_start:
+        recent_reviews_q = recent_reviews_q.filter(Review.created_at >= review_start)
+    recent_reviews = recent_reviews_q.order_by(Review.created_at.desc()).limit(12).all()
 
     today_label = now.strftime("%Y-%m-%d")
 
@@ -256,11 +270,12 @@ def _build_restaurant_dashboard_context(r: Restaurant):
         "top_staff": top_staff,
         "today_label": today_label,
         "recent_reviews": recent_reviews,
+        "review_range": range_key,
     }
 
 
-def _build_staff_dashboard_context(r: Restaurant, s: Staff):
-    ctx = _build_restaurant_dashboard_context(r)
+def _build_staff_dashboard_context(r: Restaurant, s: Staff, review_range: str = "week"):
+    ctx = _build_restaurant_dashboard_context(r, review_range)
     pending_balance = _pending_balance_for_staff(r.id, s.id)
 
     user = s.user
@@ -284,7 +299,8 @@ def _build_staff_dashboard_context(r: Restaurant, s: Staff):
 @login_required
 def restaurant_view():
     r = _require_admin_restaurant()
-    ctx = _build_restaurant_dashboard_context(r)
+    review_range = request.args.get("reviews", "week")
+    ctx = _build_restaurant_dashboard_context(r, review_range)
     return render_template(
         "dashboard/restaurant.html",
         restaurant=r,
@@ -444,7 +460,8 @@ def my_staff_panel():
     if not s or not r:
         flash("No staff profile associated with this account", "info")
         return redirect(url_for("auth.profile"))
-    ctx = _build_staff_dashboard_context(r, s)
+    review_range = request.args.get("reviews", "week")
+    ctx = _build_staff_dashboard_context(r, s, review_range)
     return render_template("dashboard/staff.html", restaurant=r, staff=s, **ctx)
 
 
@@ -453,7 +470,8 @@ def my_staff_panel():
 def staff_view(staff_id: int):
     r = _require_admin_restaurant()
     s = Staff.query.filter_by(id=staff_id, restaurant_id=r.id).first_or_404()
-    ctx = _build_staff_dashboard_context(r, s)
+    review_range = request.args.get("reviews", "week")
+    ctx = _build_staff_dashboard_context(r, s, review_range)
     return render_template("dashboard/staff.html", restaurant=r, staff=s, **ctx)
 
 
@@ -560,6 +578,50 @@ def transfer_complete():
         .count()
     )
     return render_template("dashboard/transfer_complete.html", restaurant=r, staff=s, transfer_count=transfer_count)
+
+
+@dashboard_bp.route("/me/avatar", methods=["POST"])
+@login_required
+def update_profile_avatar():
+    file = request.files.get("avatar")
+    if not file or not (file.filename or "").strip():
+        flash("Select an image", "danger")
+        return redirect(request.referrer or url_for("auth.profile"))
+    try:
+        url, _, _ = process_and_save_image(file)
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(request.referrer or url_for("auth.profile"))
+    current_user.avatar_url = url
+    db.session.add(current_user)
+    db.session.commit()
+    flash("Profile photo updated", "success")
+    return redirect(request.referrer or url_for("auth.profile"))
+
+
+@dashboard_bp.route("/me/staff-avatar", methods=["POST"])
+@login_required
+def staff_avatar_update():
+    s, r = _resolve_staff_for_user(current_user)
+    if not s or not r:
+        flash("No staff profile associated with this account", "info")
+        return redirect(url_for("auth.profile"))
+    file = request.files.get("avatar")
+    if not file or not (file.filename or "").strip():
+        flash("Select an image", "danger")
+        return redirect(request.referrer or url_for("dashboard.my_staff_panel"))
+    try:
+        url, _, _ = process_and_save_image(file)
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(request.referrer or url_for("dashboard.my_staff_panel"))
+    s.avatar_url = url
+    current_user.avatar_url = url
+    db.session.add(current_user)
+    db.session.add(s)
+    db.session.commit()
+    flash("Staff photo updated", "success")
+    return redirect(request.referrer or url_for("dashboard.my_staff_panel"))
 
 
 @dashboard_bp.route("/staff/manage")

@@ -3,6 +3,9 @@
 {% block content %}
 <div class="xinra-shell">
   <div class="card p-3 text-center mb-4">
+    {% if restaurant.logo_url %}
+      <img src="{{ restaurant.logo_url }}" alt="{{ restaurant.name }} logo" class="restaurant-logo-small">
+    {% endif %}
     <div class="section-title" style="margin:0;">{{ restaurant.name }}</div>
     <div class="text-muted">Thank you for dinning with us!</div>
   </div>

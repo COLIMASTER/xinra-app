@@ -1,96 +1,157 @@
 {% extends "_base.html" %}
-{% block title %}Manage team - {{ restaurant.name }}{% endblock %}
+{% block title %}Management tools - {{ restaurant.name }}{% endblock %}
 {% block content %}
-<h3 class="mb-3">Team · {{ restaurant.name }}</h3>
+<div class="xinra-shell">
+  <div class="dashboard-title">Management tools</div>
+  <div class="section-subtitle">Update your restaurant and team.</div>
 
-<div class="card p-3 mb-3">
-  <h5 class="mb-2">Add staff</h5>
-  <form class="row g-2" method="post" action="{{ url_for('dashboard.staff_create') }}" enctype="multipart/form-data">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="col-12 col-md-4">
-      <label class="form-label">Nombre</label>
-      <input class="form-control" type="text" name="name" placeholder="Nombre" required>
+  <div class="section-title">Restaurant photo</div>
+  <div class="card card-white p-3">
+    <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
+      {% if restaurant.logo_url %}
+        <img src="{{ restaurant.logo_url }}" alt="{{ restaurant.name }} logo" class="restaurant-logo-preview">
+      {% else %}
+        <div class="photo-placeholder">No photo yet</div>
+      {% endif %}
+      <div class="flex-grow-1">
+        <div class="text-muted small">Shown above the restaurant name on the tip page.</div>
+        <form method="post" action="{{ url_for('dashboard.restaurant_logo') }}" enctype="multipart/form-data" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="form-control" type="file" name="logo" accept="image/png,image/jpeg">
+          <button class="btn btn-primary mt-2" type="submit">Update photo</button>
+        </form>
+        {% if restaurant.logo_url %}
+          <form method="post" action="{{ url_for('dashboard.restaurant_logo_delete') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-orange btn-sm" type="submit">Remove photo</button>
+          </form>
+        {% endif %}
+      </div>
     </div>
-    <div class="col-12 col-md-3">
-      <label class="form-label">Rol</label>
-      <input class="form-control" type="text" name="role" placeholder="Rol (opcional)">
-    </div>
-    <div class="col-12 col-md-3">
-      <label class="form-label">Photo (jpg/png)</label>
-      <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
-    </div>
-    <div class="col-12">
-      <label class="form-label">Bio</label>
-      <textarea class="form-control" name="bio" rows="2" placeholder="Breve bio (opcional)"></textarea>
-    </div>
-    <div class="col-12 text-end">
-      <button class="btn btn-primary" type="submit">Add</button>
-    </div>
-  </form>
-  <small class="text-muted">Las fotos se guardan optimizadas en la ruta configurada (por defecto /uploads).</small>
   </div>
 
-<div class="row g-3">
-  {% for s in staff_list %}
-  <div class="col-12 col-lg-6">
-    <div class="p-3 staff-card h-100">
+  <div class="section-title">Admin profile photo</div>
+  <div class="card card-white p-3">
+    <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
+      {% set admin_avatar = current_user.avatar_url %}
+      {% if admin_avatar and 'placehold.co/96x96' in admin_avatar %}
+        {% set admin_avatar = admin_avatar|replace('placehold.co/96x96', 'placehold.co/600x600') %}
+      {% endif %}
+      {% if admin_avatar %}
+        <img src="{{ admin_avatar }}" alt="{{ current_user.name or 'Admin' }}" class="profile-photo-preview">
+      {% else %}
+        <div class="profile-photo-fallback">{{ (current_user.name or 'A')[:1].upper() }}</div>
+      {% endif %}
+      <form method="post" action="{{ url_for('dashboard.update_profile_avatar') }}" enctype="multipart/form-data" class="w-100">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
+        <button class="btn btn-primary mt-2" type="submit">Update photo</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="section-title">Add staff</div>
+  <div class="card card-white p-3">
+    <form class="row g-2" method="post" action="{{ url_for('dashboard.staff_create') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-12 col-md-4">
+        <label class="form-label">Name</label>
+        <input class="form-control" type="text" name="name" placeholder="Name" required>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label">Role</label>
+        <input class="form-control" type="text" name="role" placeholder="Role (optional)">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label">Photo (jpg/png)</label>
+        <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Bio</label>
+        <textarea class="form-control" name="bio" rows="2" placeholder="Short bio (optional)"></textarea>
+      </div>
+      <div class="col-12 text-end">
+        <button class="btn btn-primary" type="submit">Add staff</button>
+      </div>
+    </form>
+    <small class="text-muted">Photos are optimized and stored in the uploads folder.</small>
+  </div>
+
+  <div class="section-title">Manage team</div>
+  <div class="management-team-grid">
+    {% for s in staff_list %}
+    <div class="card card-white p-3 staff-manage-card">
       <form method="post" action="{{ url_for('dashboard.staff_update', staff_id=s.id) }}" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex flex-column flex-md-row gap-3">
           {% if s.avatar_url %}
-            <img class="avatar avatar-lg" src="{{ s.avatar_url }}" alt="{{ s.name }}">
+            <img class="profile-photo-preview" src="{{ s.avatar_url }}" alt="{{ s.name }}">
           {% else %}
             {% set initials = (s.name.split(' ')[0][:1] + (s.name.split(' ')[1][:1] if s.name.split(' ')|length>1 else '')).upper() %}
-            <div class="avatar-fallback avatar-lg">{{ initials }}</div>
+            <div class="profile-photo-fallback">{{ initials }}</div>
           {% endif %}
           <div class="flex-grow-1">
             <div class="row g-2">
               <div class="col-12 col-md-6">
-                <label class="form-label">Nombre</label>
+                <label class="form-label">Name</label>
                 <input class="form-control" name="name" value="{{ s.name }}" required>
               </div>
               <div class="col-12 col-md-6">
-                <label class="form-label">Rol</label>
+                <label class="form-label">Role</label>
                 <input class="form-control" name="role" value="{{ s.role or '' }}">
               </div>
               <div class="col-12">
-                <label class="form-label">Bio</label>
-                <textarea class="form-control" name="bio" rows="2">{{ s.bio or '' }}</textarea>
-              </div>
-              <div class="col-12 col-md-8">
-                <label class="form-label">Nueva foto (opcional)</label>
+                <label class="form-label">Update photo</label>
                 <input class="form-control" type="file" name="avatar" accept="image/png,image/jpeg">
               </div>
-              <div class="col-12 col-md-4 d-flex align-items-end justify-content-between flex-wrap gap-2">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="active" id="act{{ s.id }}" {% if s.active %}checked{% endif %}>
-                  <label class="form-check-label" for="act{{ s.id }}">Active</label>
+              <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <label class="switch">
+                    <input type="checkbox" name="active" {% if s.active %}checked{% endif %}>
+                    <span class="switch-slider"></span>
+                  </label>
+                  <span class="text-muted small">Visible on tip page</span>
                 </div>
-                <button class="btn btn-primary" type="submit">Save</button>
+                <button class="btn btn-primary btn-sm" type="submit">Save</button>
               </div>
             </div>
             <div class="mt-3 small text-muted">
-              <strong>Acceso trabajador</strong><br>
+              <strong>Staff access</strong><br>
               {% if s.user %}
-                Usuario: <code>{{ s.user.email }}</code><br>
+                User: <code>{{ s.user.email }}</code><br>
               {% else %}
-                Usuario: <span class="text-muted">Pendiente de generar</span><br>
+                User: <span class="text-muted">Pending generation</span><br>
               {% endif %}
               {% if s.login_initial_password %}
-                Contraseña inicial: <code>{{ s.login_initial_password }}</code>
+                Initial password: <code>{{ s.login_initial_password }}</code>
               {% else %}
-                <span class="text-muted">Contraseña ya establecida (no visible)</span>
+                <span class="text-muted">Password already set (not visible)</span>
               {% endif %}
             </div>
           </div>
         </div>
       </form>
-      <form method="post" action="{{ url_for('dashboard.staff_delete', staff_id=s.id) }}" class="mt-2 text-end" onsubmit="return confirm('Delete this staff member? They will be marked inactive.');">
+      <form method="post" action="{{ url_for('dashboard.staff_delete', staff_id=s.id) }}" class="mt-2 text-end delete-staff-form" data-staff-name="{{ s.name }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-outline-dark btn-sm" type="submit">Delete</button>
       </form>
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
+
+<script>
+  document.querySelectorAll('.delete-staff-form').forEach(form => {
+    form.addEventListener('submit', (event) => {
+      const name = form.dataset.staffName || 'this staff member';
+      if (!confirm(`Delete ${name}?`)) {
+        event.preventDefault();
+        return;
+      }
+      if (!confirm('This will deactivate the staff member and hide them from the tip page. Continue?')) {
+        event.preventDefault();
+      }
+    });
+  });
+</script>
 {% endblock %}
