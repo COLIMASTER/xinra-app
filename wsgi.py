@@ -16,7 +16,7 @@ def _maybe_run_migrations():
         def _bootstrap_schema(conn):
             insp = inspect(conn)
             if not insp.has_table("restaurants"):
-                db.create_all(bind=conn)
+                db.metadata.create_all(bind=conn)
                 stamp(revision="head")
                 return True
             return False
