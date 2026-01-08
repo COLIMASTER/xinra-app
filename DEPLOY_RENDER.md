@@ -121,7 +121,7 @@ Hay dos enfoques habituales:
 
 2. **Aplicar migraciones en Render en cada despliegue** (necesitaría script de deploy):
    - Ahora se puede habilitar con la variable `AUTO_MIGRATE=1` en Render.
-   - Con `AUTO_MIGRATE=1`, `wsgi.py` ejecuta `flask db upgrade` al arrancar, usando un lock de Postgres para evitar carreras.
+   - Con `AUTO_MIGRATE=1`, `wsgi.py` crea el esquema si la BD está vacía y luego hace `flask db upgrade`, usando un lock de Postgres para evitar carreras.
    - Esto es útil para prototipos; en producción grande se recomienda el enfoque 1.
 
 Con la configuración actual, el escenario 1 es el esperado.
