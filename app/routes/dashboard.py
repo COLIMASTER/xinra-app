@@ -518,22 +518,31 @@ def staff_breakdown():
     )
 
 
-@dashboard_bp.route("/me/transfer", methods=["POST"])
+@dashboard_bp.route("/me/transfer", methods=["GET", "POST"])
 @login_required
 def staff_transfer():
     s, r = _resolve_staff_for_user(current_user)
     if not s or not r:
         flash("No staff profile associated with this account", "info")
         return redirect(url_for("auth.profile"))
-    pending = _pending_balance_for_staff(r.id, s.id)
-    if pending <= 0:
-        flash("No pending balance to transfer", "info")
-        return redirect(url_for("dashboard.my_staff_panel"))
-    tr = Transfer(restaurant_id=r.id, staff_id=s.id, amount_cents=pending, status="sent", created_at=datetime.utcnow())
-    db.session.add(tr)
-    add_xp(current_user, 10)
-    db.session.commit()
-    return redirect(url_for("dashboard.transfer_complete"))
+    if request.method == "POST":
+        pending = _pending_balance_for_staff(r.id, s.id)
+        if pending <= 0:
+            flash("No pending balance to transfer", "info")
+            return redirect(url_for("dashboard.staff_transfer"))
+        tr = Transfer(restaurant_id=r.id, staff_id=s.id, amount_cents=pending, status="sent", created_at=datetime.utcnow())
+        db.session.add(tr)
+        add_xp(current_user, 10)
+        db.session.commit()
+        return redirect(url_for("dashboard.transfer_complete"))
+
+    pending_balance = _pending_balance_for_staff(r.id, s.id)
+    return render_template(
+        "dashboard/transfer.html",
+        restaurant=r,
+        staff=s,
+        pending_balance=pending_balance,
+    )
 
 
 @dashboard_bp.route("/me/transfer/complete")

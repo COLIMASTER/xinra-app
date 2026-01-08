@@ -36,6 +36,7 @@
           <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">Rewards & Recognition</a></li>
           {% if current_user.is_authenticated and has_staff() %}
             <li><a class="dropdown-item" href="{{ url_for('dashboard.my_staff_panel') }}">Staff dashboard</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('dashboard.staff_transfer') }}">Instant Tip Transfer</a></li>
           {% endif %}
           {% if current_user.is_authenticated and has_admin() %}
             <li><a class="dropdown-item" href="{{ url_for('dashboard.restaurant_view') }}">Admin</a></li>

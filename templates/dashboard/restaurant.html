@@ -99,6 +99,33 @@
     {% endfor %}
   </div>
 
+  <div class="section-title">Management tools</div>
+  <div class="kpi-grid">
+    <div class="kpi-card d-flex flex-column">
+      <div class="fw-semibold">Team management</div>
+      <div class="text-muted small mt-1">Add, edit, delete, upload photos, freeze staff.</div>
+      <div class="mt-3">
+        <a class="btn btn-primary" href="{{ url_for('dashboard.staff_manage') }}">Manage team</a>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="fw-semibold">Restaurant photo</div>
+      <div class="text-muted small mt-1">Upload your venue logo or storefront photo.</div>
+      {% if restaurant.logo_url %}
+        <img src="{{ restaurant.logo_url }}" alt="{{ restaurant.name }} logo" class="restaurant-logo-preview mt-2">
+        <form method="post" action="{{ url_for('dashboard.restaurant_logo_delete') }}" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-orange btn-sm" type="submit">Remove photo</button>
+        </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('dashboard.restaurant_logo') }}" enctype="multipart/form-data" class="mt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-control" type="file" name="logo" accept="image/png,image/jpeg">
+        <button class="btn btn-primary mt-2" type="submit">Update photo</button>
+      </form>
+    </div>
+  </div>
+
   <div class="d-grid mt-4">
     <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard.breakdown_view') }}">View detailed Breakdown</a>
   </div>

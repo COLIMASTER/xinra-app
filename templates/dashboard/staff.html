@@ -146,40 +146,6 @@
     <div class="text-muted">No reviews yet.</div>
   {% endif %}
 
-  <div class="section-title">Instant Tip Transfer</div>
-  <div class="section-subtitle">End your shift, collect your reward.</div>
-  <div class="transfer-panel mt-2">
-    <div class="kpi-value">${{ '%.2f' % (pending_balance/100) }}</div>
-    <div class="text-muted mb-3">Available to transfer</div>
-
-    <div class="d-grid gap-2 mb-3">
-      <label class="bank-option">
-        <input type="radio" name="bank_choice" checked>
-        <div>
-          <div class="fw-semibold">XINRA Checking</div>
-          <div class="text-muted small">**** 4821</div>
-        </div>
-      </label>
-      <label class="bank-option">
-        <input type="radio" name="bank_choice">
-        <div>
-          <div class="fw-semibold">Savings</div>
-          <div class="text-muted small">**** 1174</div>
-        </div>
-      </label>
-    </div>
-
-    <div class="card p-3 mb-3" style="box-shadow:none;">
-      <div class="text-muted">Estimated arrival</div>
-      <div class="fw-semibold">Within minutes</div>
-    </div>
-
-    <form method="post" action="{{ url_for('dashboard.staff_transfer') }}" class="d-flex gap-2">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <a class="btn btn-outline-orange w-100" href="{{ url_for('dashboard.my_staff_panel') }}">Cancel</a>
-      <button class="btn btn-primary w-100" type="submit">Confirm</button>
-    </form>
-  </div>
 </div>
 
 <script id="shiftData" type="application/json">
